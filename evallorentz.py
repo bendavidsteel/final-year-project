@@ -17,13 +17,15 @@ def evalLorentz(params):
     lambd = params[1]
 
     model = NeuralNetwork(x, y, x0, lambd)
-    model.train(100000)
+    model.train(10000)
     
     output = model.predict(x)
 
     return np.sum(np.square(output - y))
 
-es = cma.CMAEvolutionStrategy([1,1], 1)
-es.optimize(evalLorentz)
+# es = cma.CMAEvolutionStrategy([1], 0.5)
+# es.optimize(evalLorentz)
 
-print(es.result_pretty())
+# print(es.result_pretty())
+
+print(evalLorentz([0.043, 0.65]))
