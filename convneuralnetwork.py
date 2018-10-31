@@ -1,3 +1,7 @@
+# written by aditya sharma
+# taken from https://www.datacamp.com/community/tutorials/cnn-tensorflow-python
+
+
 # Import libraries
 import numpy as np
 import matplotlib.pyplot as plt
