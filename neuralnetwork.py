@@ -1,32 +1,85 @@
 # 24/10/18
 # adapted from james loy's NN implementation, Lorentz functions are mine
 # https://towardsdatascience.com/how-to-build-your-own-neural-network-from-scratch-in-python-68998a08e4f6
+# 07/11/18
+# further adaptation with correctly derived back propagation for using Lorentzian function, with weights being parameters
 
 import numpy as np
 
 class NeuralNetwork:
-  def __init__(self, x, y, params):
-    self.input = x
-    self.weights1 = np.random.rand(self.input.shape[1], 4)
-    self.weights2 = np.random.rand(4,1)
-    self.y = y
+  def __init__(self, x, y, layers, alpha):
+
+    # hyperparameters
+    self.hidden_layer_sizes = layers
+    self.alpha = alpha
+
+    # ensuring inputs and targets are np arrays
+    self.x = np.asarray(x)
+    
+    # targets
+    self.y = np.asarray(y)
+
+    self.weights_x0 = []
+    self.weights_gamma = []
+    
+    # first hidden layer weights
+    self.weights_x0.append(np.random.rand(self.hidden_layer_sizes[0], self.input.shape[1]))
+    self.weights_gamma.append(np.random.rand(self.hidden_layer_sizes[0], self.input.shape[1]))
+
+    # additional hidden layer weights
+    for i in range(len(self.hidden_layer_sizes)-1):
+      self.weights_x0.append(np.random.rand(self.hidden_layer_sizes[i+1], self.hidden_layer_sizes[i]))
+      self.weights_gamma.append(np.random.rand(self.hidden_layer_sizes[i+1], self.hidden_layer_sizes[i]))
+    
+    # output layer weights
+    self.weights_x0.append(np.random.rand(self.y.shape[1], self.hidden_layer_sizes[-1]))
+    self.weights_gamma.append(np.random.rand(self.y.shape[1], self.hidden_layer_sizes[-1]))
+
+    self.weights_x0 = np.asarray(self.weights_x0)
+    self.weights_gamma = np.asarray(self.weights_gamma)
+
     self.output = np.zeros(self.y.shape)
 
-    #lorentz function parameters
-    self.params = params
-
   def feedForward(self):
-    self.layer1 = self.activation(np.dot(self.input, self.weights1))
-    self.output = self.activation(np.dot(self.layer1, self.weights2))
+    # performing feed forward step
+    self.layers = []
+
+    self.layers.append(np.sum(self.lorentz(np.tile(self.input, (self.hidden_layer_sizes[0],1)), self.weights_x0[0], self.weights_gamma[0]), axis=1))
+
+    for i in range(1, len(self.hidden_layer_sizes)):
+      self.layers.append(np.sum(self.lorentz(np.tile(self.layers[i-1], (self.hidden_layer_sizes[i],1)), self.weights_x0[i], self.weights_gamma[i]), axis=1))
+
+    self.layers = np.asarray(self.layers)
+
+    self.output = np.sum(self.lorentz(np.tile(self.layers[-1], (self.y.shape[1],1)), self.weights_x0[-1], self.weights_gamma[-1]), axis=1)
 
   def backProp(self):
-    # application of the chain rule to find derivative of the loss function with respect to weights2 and weights1
-    d_weights2 = np.dot(self.layer1.T, (2*(self.y - self.output) * self.activation(self.output)))
-    d_weights1 = np.dot(self.input.T,  (np.dot(2*(self.y - self.output) * self.derivActivation(self.output), self.weights2.T) * self.derivActivation(self.layer1)))
+    # application of the chain rule to find derivative of the loss function with respect to weights_x0 and weights_gamma
+    # using cost function squared differences
+    self.delta = [2*(self.y - self.output)]
 
-    # update the weights with the derivative (slope) of the loss function
-    self.weights1 += d_weights1
-    self.weights2 += d_weights2
+    self.delta.insert(0, np.matmul(self.lorentzDx(np.tile(self.layers[-1], (self.y.shape[1],1)), self.weights_x0[-1], self.weights_gamma[-1]).T, self.delta[0]))
+
+    # inserting new deltas at front of list
+    for i in range(len(self.hidden_layer_sizes)-1, 0, -1):
+      self.delta.insert(0, np.matmul(self.lorentzDx(np.tile(self.layers[i-1], (self.hidden_layer_sizes[i],1)), self.weights_x0[i], self.weights_gamma[i]).T, self.delta[0]))
+
+    self.delta = np.asarray(self.delta)
+    # finding the derivative with respect to weights
+    grad_weights_x0 = [(self.lorentzDx0(np.tile(self.x, (self.hidden_layer_sizes[0],1)), self.weights_x0[0], self.weights_gamma[0]).T * self.delta[0]).T]
+    grad_weights_gamma = [(self.lorentzDGamma(np.tile(self.x, (self.hidden_layer_sizes[0],1)), self.weights_x0[0], self.weights_gamma[0]).T * self.delta[0]).T]
+
+    for i in range(len(1, self.delta)):
+      grad_weights_x0.append((self.lorentzDx0(np.tile(self.layers[i], (self.hidden_layer_sizes[i],1)), self.weights_x0[i+1], self.weights_gamma[i+1]).T * self.delta[i]).T)
+      grad_weights_gamma.append((self.lorentzDGamma(np.tile(self.layers[i], (self.hidden_layer_sizes[i],1)), self.weights_x0[i+1], self.weights_gamma[i+1]).T * self.delta[i]).T)
+
+    grad_weights_x0 = np.asarray(grad_weights_x0)
+    grad_weights_gamma = np.asarray(grad_weights_gamma)
+
+    # update the weights with the derivative of the loss function
+    self.weights_x0 -= self.alpha * grad_weights_x0
+    self.weights_gamma -= self.alpha * grad_weights_gamma
+
 
   def train(self, iterations):
     #train for number of iterations
@@ -41,13 +94,21 @@ class NeuralNetwork:
 
     return self.output
 
-  def lorentz(self, x, x0, lambd):
+  def lorentz(self, x, x0, gamma):
     # lorentz function
-    return (0.5*lambd)/(np.pi * (np.square(x - x0) + np.square(0.5*lambd)))
+    return (0.5*gamma)/(np.pi * np.add(np.square(np.subtract(x , x0)) , np.square(0.5*gamma)))
 
-  def derivLorentz(self, x, x0, lambd):
-    # derivative of lorentz function
-    return (-16*lambd*(x - x0))/(np.pi * np.square(4*np.square(x - x0) + lambd**2)) 
+  def lorentzDx(self, x, x0, gamma):
+    # derivative of lorentz function with respect to x
+    return -4*np.subtract(x , x0)*(np.pi/gamma)*np.square(self.lorentz(x, x0, gamma))
+
+  def lorentzDx0(self, x, x0, gamma):
+    # derivative of lorentz function with respect to x0
+    return 4*np.subtract(x , x0)*(np.pi/gamma)*np.square(self.lorentz(x, x0, gamma))
+
+  def lorentzDGamma(self, x, x0, gamma):
+    # derivative of lorentz function with respect to gamma
+    return (1/gamma)*self.lorentz(x, x0, gamma) - np.square(self.lorentz(x, x0, gamma))
 
   def sigmoid(self, x):
     # sigmoid function
@@ -57,7 +118,7 @@ class NeuralNetwork:
     # derivative of sigmoid function
     return np.exp(-x)/np.square(1 + np.exp(-x))
 
-  def activation(self, x):
+  """ def activation(self, x):
     depth = int(self.params[0])
 
     for i in range(1, (depth*2) + 1, 2):
@@ -71,7 +132,7 @@ class NeuralNetwork:
     for i in range(1, (depth*2) + 1, 2):
       x = self.derivLorentz(x, self.params[i], self.params[i+1])
 
-    return x
+    return x """
 
     
 
