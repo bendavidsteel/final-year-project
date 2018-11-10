@@ -3,3 +3,4 @@
 *.dat
 *.asv
 Output/
+.vscode/

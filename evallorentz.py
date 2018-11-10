@@ -2,15 +2,15 @@
 # 24/10/18
 # cma library taken from https://github.com/CMA-ES/pycma
 
-from neuralnetwork import NeuralNetwork
+from neuralnetwork import FullLorentzianNeuralNetwork
 import numpy as np
-import cma
+# import cma
 import matplotlib.pyplot as plt
 
-def evalLorentz(params):
+def evalLorentzError(alpha, gamma):
     x = np.array([[0,0],
-                [1,0],
                 [0,1],
+                [1,0],
                 [1,1]])
 
     y = np.array([[0],
@@ -18,29 +18,66 @@ def evalLorentz(params):
                 [1],
                 [0]])
 
-    params[0] = int((2 * params[0])**2 + 1)
-    if params[0] > 3:
-        params[0] = 3
+    layers = [4]
 
-    model = NeuralNetwork(x, y, params)
-    model.train(10000)
+    model = FullLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
     
-    output = model.predict(x)
-
-    m = np.linspace(-3, 3, 1000)
+    m = np.zeros(1000)
     n = np.zeros(1000)
 
-    for i in range(len(m)):
-        n[i] = model.activation(m[i])
+    print(model.predict(x))
+
+    for i in range(1000):
+        model.train(10)
+
+        m[i] = i * 10
+        n[i] = np.sum(np.square(model.predict(x) - y))
+
+    print(model.predict(x))
 
     plt.plot(m, n)
+    plt.axis([0, np.max(m), 0, np.max(n)])
+    plt.ylabel("Error")
+    plt.xlabel("Iterations")
+    plt.title("Error decreasing with increasing training iterations, with Gamma = " + str(gamma))
     plt.show()
 
-    return np.sum(np.square(output - y))
-
-es = cma.CMAEvolutionStrategy(9*[0], 0.5)
-es.optimize(evalLorentz)
+# es = cma.CMAEvolutionStrategy(9*[0], 0.5)
+# es.optimize(evalLorentz)
 
 # print(es.result_pretty())
 
-print(evalLorentz([3, 0.31, -0.27, -0.12, -0.04, -2.67, 0.59]))
+def evalLorentzGamma():
+    x = np.array([[0,0],
+                [0,1],
+                [1,0],
+                [1,1]])
+
+    y = np.array([[0],
+                [1],
+                [1],
+                [0]])
+
+    layers = [4]
+
+    alpha = 0.001
+
+    m = np.linspace(-3, 3, 100)
+    n = np.zeros(100)
+
+    for i in range(len(m)):
+
+        model = FullLorentzianNeuralNetwork(x, y, layers, alpha, m[i])
+
+        model.train(10000)
+
+        n[i] = np.sum(np.square(model.predict(x) - y))
+
+    plt.plot(m, n)
+    plt.axis([0, np.max(m), 0, np.max(n)])
+    plt.ylabel("Final Error")
+    plt.xlabel("Gamma")
+    plt.title("Final error for different values of Gamma")
+    plt.show()
+
+print(evalLorentzError(0.001, 0.3))
