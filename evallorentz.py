@@ -13,12 +13,12 @@ def evalLorentzError(alpha, gamma):
                 [1,0],
                 [1,1]])
 
-    y = np.array([[0],
-                [1],
-                [1],
-                [0]])
+    y = np.array([[0,1],
+                [1,0],
+                [1,0],
+                [0,1]])
 
-    layers = [4]
+    layers = [4,4]
 
     model = FullLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
     
@@ -80,4 +80,4 @@ def evalLorentzGamma():
     plt.title("Final error for different values of Gamma")
     plt.show()
 
-print(evalLorentzError(0.001, 0.3))
+print(evalLorentzError(0.0001, 0.3))

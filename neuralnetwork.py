@@ -54,14 +54,14 @@ class FullLorentzianNeuralNetwork:
 
     for i in range(1, len(self.hidden_layer_sizes)):
       # resizing
-      batch_input = self.layers[i-1].reshape(self.no_samples, self.hidden_layer_sizes[i], self.layers[i-1].shape[1])
+      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.layers[i-1].shape[1])
       batch_weights_x0 = np.tile(self.weights_x0[i], (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.weights_x0[i].shape[0], self.weights_x0[i].shape[1])
       
       # finding layer output
       self.layers.append(np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2))
 
     # resizing
-    batch_input = self.layers[-1].reshape(self.no_samples, self.output_size, self.layers[-1].shape[1])
+    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.layers[-1].shape[1])
     batch_weights_x0 = np.tile(self.weights_x0[-1], (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.weights_x0[-1].shape[0], self.weights_x0[-1].shape[1])
     
     self.output = np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2)
@@ -71,16 +71,22 @@ class FullLorentzianNeuralNetwork:
     # using cost function squared differences
     delta = [(2*(self.y - self.output)).reshape(self.no_samples, self.output_size, 1)]
 
-    deriv_mat = self.lorentzDx(np.tile(self.layers[-1], (self.output_size, 1)), self.weights_x0[-1])
-    deriv_mat_T = deriv_mat.reshape(self.no_samples, self.hidden_layer_sizes[-1], 1)
+    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+    batch_weights_x0 = np.tile(self.weights_x0[-1], (self.layers[-1].shape[0], 1)).reshape(self.no_samples, self.weights_x0[-1].shape[0], self.weights_x0[-1].shape[1])
 
-    delta.insert(0, np.multiply(deriv_mat_T, delta[0]))
+    deriv_mat = self.lorentzDx(batch_input, batch_weights_x0)
+    deriv_mat_T = np.asarray([mat.T for mat in deriv_mat])
+
+    delta.insert(0, np.asarray([np.matmul(mat, delta) for mat, delta in zip(deriv_mat_T, delta[0])]))
     # inserting new deltas at front of list
     for i in range(len(self.hidden_layer_sizes)-1, 0, -1):
-      deriv_mat = self.lorentzDx(np.tile(self.layers[i-1], (self.hidden_layer_sizes[i-1],1)), self.weights_x0[i])
-      deriv_mat_T = deriv_mat.reshape(self.no_samples, self.hidden_layer_sizes[i-1], self.hidden_layer_sizes[i])
+      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      batch_weights_x0 = np.tile(self.weights_x0[i], (self.layers[i-1].shape[0], 1)).reshape(self.no_samples, self.weights_x0[i].shape[0], self.weights_x0[i].shape[1])
 
-      delta.insert(0, np.multiply(deriv_mat_T, delta[0]))
+      deriv_mat = self.lorentzDx(batch_input, batch_weights_x0)
+      deriv_mat_T = np.asarray([mat.T for mat in deriv_mat])
+
+      delta.insert(0, np.asarray([np.matmul(mat, delta) for mat, delta in zip(deriv_mat_T, delta[0])]))
 
     # finding the derivative with respect to weights
     # resizing input and weights for batch processing
