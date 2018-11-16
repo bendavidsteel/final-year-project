@@ -181,14 +181,14 @@ class SqrtLorentzianNeuralNetwork:
     self.weights_x0 = []
     
     # first hidden layer weights
-    self.weights_x0.append(np.random.rand(self.hidden_layer_sizes[0], self.input_size))
+    self.weights_x0.append(np.random.rand(self.hidden_layer_sizes[0], 1))
 
     # additional hidden layer weights
     for i in range(len(self.hidden_layer_sizes)-1):
-      self.weights_x0.append(np.random.rand(self.hidden_layer_sizes[i+1], self.hidden_layer_sizes[i]))
+      self.weights_x0.append(np.random.rand(self.hidden_layer_sizes[i+1], 1))
     
     # output layer weights
-    self.weights_x0.append(np.random.rand(self.output_size, self.hidden_layer_sizes[-1]))
+    self.weights_x0.append(np.random.rand(self.output_size, 1))
 
     self.weights_x0 = np.asarray(self.weights_x0)
 
@@ -199,43 +199,40 @@ class SqrtLorentzianNeuralNetwork:
     self.layers = []
 
     # resizing input and weights for batch processing
-    batch_input = np.repeat(self.input, self.hidden_layer_sizes[0], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+    batch_input = np.sum(np.repeat(self.input, self.hidden_layer_sizes[0], axis=0), axis=1).reshape(self.no_samples, self.hidden_layer_sizes[0], 1)
     batch_weights_x0 = np.tile(self.weights_x0[0], (self.input.shape[0], 1)).reshape(self.no_samples, self.weights_x0[0].shape[0], self.weights_x0[0].shape[1])
     
     # finding layer output
-    self.layers.append(np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2))
+    self.layers.append(self.lorentz(batch_input, batch_weights_x0))
 
     for i in range(1, len(self.hidden_layer_sizes)):
       # resizing
-      batch_input = self.layers[i-1].reshape(self.no_samples, self.hidden_layer_sizes[i], self.layers[i-1].shape[1])
+      batch_input = np.sum(np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0), axis=1).reshape(self.no_samples, self.hidden_layer_sizes[i], 1)
       batch_weights_x0 = np.tile(self.weights_x0[i], (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.weights_x0[i].shape[0], self.weights_x0[i].shape[1])
       
       # finding layer output
-      self.layers.append(np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2))
+      self.layers.append(self.lorentz(batch_input, batch_weights_x0))
 
     # resizing
-    batch_input = self.layers[-1].reshape(self.no_samples, self.output_size, self.layers[-1].shape[1])
+    batch_input = np.sum(np.repeat(self.layers[-1], self.output_size, axis=0), axis=1).reshape(self.no_samples, self.output_size, 1)
     batch_weights_x0 = np.tile(self.weights_x0[-1], (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.weights_x0[-1].shape[0], self.weights_x0[-1].shape[1])
     
-    self.output = np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2)
+    self.output = self.lorentz(batch_input, batch_weights_x0)
 
   def backProp(self):
     # application of the chain rule to find derivative of the loss function with respect to weights_x0 and weights_gamma
     # using cost function squared differences
-    delta = [2*(self.y - self.output)]
+    delta = [(2*(self.y - self.output)).reshape(self.no_samples, self.output_size, 1)]
 
-    deriv_mat = self.lorentzDx(np.tile(self.layers[-1], (self.output_size, 1)), self.weights_x0[-1])
-
-    delta.insert(0, np.multiply(deriv_mat, delta[0]))
+    delta.insert(0, np.asarray([np.matmul(np.ones((self.output_size, self.hidden_layer_sizes[-1])), delta) for delta in delta[0]]))
     # inserting new deltas at front of list
     for i in range(len(self.hidden_layer_sizes)-1, 0, -1):
-      deriv_mat = self.lorentzDx(np.tile(self.layers[i-1], (self.hidden_layer_sizes[i],1)), self.weights_x0[i])
-      delta.insert(0, np.multiply(deriv_mat, delta[0]))
+      delta.insert(0, np.asarray([np.matmul(np.ones((self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])), delta) for delta in delta[0]]))
 
     # finding the derivative with respect to weights
     # resizing input and weights for batch processing
-    batch_input = np.repeat(self.input, self.hidden_layer_sizes[0], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
-    batch_weights_x0 = np.tile(self.weights_x0[0], (self.input.shape[0], 1)).reshape(self.no_samples, self.weights_x0[0].shape[0], self.weights_x0[0].shape[1])
+    batch_input = np.repeat(np.sum(self.input, axis=1), self.hidden_layer_sizes[0], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[0], 1)
+    batch_weights_x0 = np.tile(self.weights_x0[0], (self.no_samples, 1)).reshape(self.no_samples, self.weights_x0[0].shape[0], self.weights_x0[0].shape[1])
     
     deriv_mat = self.lorentzDx0(batch_input, batch_weights_x0)
     delta_mat = np.tile(delta[0].reshape(self.no_samples, deriv_mat.shape[1], 1), (1,1,deriv_mat.shape[2]))
@@ -244,7 +241,7 @@ class SqrtLorentzianNeuralNetwork:
     
     # for 2nd and more hidden layer weights
     for i in range(1, len(self.hidden_layer_sizes)):
-      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      batch_input = np.repeat(np.sum(self.layers[i-1], axis=1), self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], 1)
       batch_weights_x0 = np.tile(self.weights_x0[i], (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.weights_x0[i].shape[0], self.weights_x0[i].shape[1])
       
       deriv_mat = self.lorentzDx0(batch_input, batch_weights_x0)
@@ -253,7 +250,7 @@ class SqrtLorentzianNeuralNetwork:
       grad_weights_x0.append(np.multiply(deriv_mat, delta_mat))
 
     # for output layer weights
-    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+    batch_input = np.repeat(np.sum(self.layers[-1], axis=1), self.output_size, axis=0).reshape(self.no_samples, self.output_size, 1)
     batch_weights_x0 = np.tile(self.weights_x0[-1], (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.weights_x0[-1].shape[0], self.weights_x0[-1].shape[1])
     
     deriv_mat = self.lorentzDx0(batch_input, batch_weights_x0)
@@ -264,7 +261,7 @@ class SqrtLorentzianNeuralNetwork:
     grad_weights = [np.divide(np.sum(weights, axis=0),self.no_samples) for weights in grad_weights_x0]
 
     # update the weights with the derivative of the loss function
-    self.weights_x0 -= self.alpha * np.asarray(grad_weights)
+    self.weights_x0 += self.alpha * np.asarray(grad_weights)
     
 
   def train(self, iterations):
@@ -291,11 +288,3 @@ class SqrtLorentzianNeuralNetwork:
   def lorentzDx0(self, x, x0):
     # derivative of lorentz function with respect to x0
     return 4*np.subtract(x , x0)*(np.pi/self.gamma)*np.square(self.lorentz(x, x0))
-
-  def sigmoid(self, x):
-    # sigmoid function
-    return 1/(1 + np.exp(-x))
-
-  def derivSigmoid(self, x):
-    # derivative of sigmoid function
-    return np.exp(-x)/np.square(1 + np.exp(-x))

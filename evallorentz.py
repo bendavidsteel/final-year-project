@@ -2,7 +2,7 @@
 # 24/10/18
 # cma library taken from https://github.com/CMA-ES/pycma
 
-from neuralnetwork import FullLorentzianNeuralNetwork
+from neuralnetwork import FullLorentzianNeuralNetwork, SqrtLorentzianNeuralNetwork
 import numpy as np
 # import cma
 import matplotlib.pyplot as plt
@@ -18,9 +18,9 @@ def evalLorentzError(alpha, gamma):
                 [1,0],
                 [0,1]])
 
-    layers = [4,4]
+    layers = [3,5]
 
-    model = FullLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
+    model = SqrtLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
     
     m = np.zeros(1000)
     n = np.zeros(1000)
@@ -67,7 +67,7 @@ def evalLorentzGamma():
 
     for i in range(len(m)):
 
-        model = FullLorentzianNeuralNetwork(x, y, layers, alpha, m[i])
+        model = SqrtLorentzianNeuralNetwork(x, y, layers, alpha, m[i])
 
         model.train(10000)
 
