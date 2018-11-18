@@ -18,16 +18,16 @@ def evalLorentzError(alpha, gamma):
                 [1,0],
                 [0,1]])
 
-    layers = [3,5]
+    layers = [20]
 
-    model = SqrtLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
+    model = FullLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
     
-    m = np.zeros(1000)
-    n = np.zeros(1000)
+    m = np.zeros(10000)
+    n = np.zeros(10000)
 
     print(model.predict(x))
 
-    for i in range(1000):
+    for i in range(10000):
         model.train(10)
 
         m[i] = i * 10

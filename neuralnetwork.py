@@ -222,12 +222,13 @@ class SqrtLorentzianNeuralNetwork:
   def backProp(self):
     # application of the chain rule to find derivative of the loss function with respect to weights_x0 and weights_gamma
     # using cost function squared differences
-    delta = [(2*(self.y - self.output)).reshape(self.no_samples, self.output_size, 1)]
+    target = self.y.reshape(self.no_samples, self.output_size, 1)
+    delta = [(2*(target - self.output)).reshape(self.no_samples, self.output_size, 1)]
 
-    delta.insert(0, np.asarray([np.matmul(np.ones((self.output_size, self.hidden_layer_sizes[-1])), delta) for delta in delta[0]]))
+    delta.insert(0, np.asarray([np.matmul(np.ones((self.hidden_layer_sizes[-1], self.output_size)), delta) for delta in delta[0]]))
     # inserting new deltas at front of list
     for i in range(len(self.hidden_layer_sizes)-1, 0, -1):
-      delta.insert(0, np.asarray([np.matmul(np.ones((self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])), delta) for delta in delta[0]]))
+      delta.insert(0, np.asarray([np.matmul(np.ones((self.hidden_layer_sizes[i-1], self.hidden_layer_sizes[i])), delta) for delta in delta[0]]))
 
     # finding the derivative with respect to weights
     # resizing input and weights for batch processing
@@ -275,7 +276,7 @@ class SqrtLorentzianNeuralNetwork:
     self.input = x
     self.feedForward()
 
-    return self.output
+    return self.output.reshape(self.no_samples, self.output_size)
 
   def lorentz(self, x, x0):
     # lorentz function
