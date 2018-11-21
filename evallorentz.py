@@ -18,7 +18,7 @@ def evalLorentzErrorCurve(alpha, gamma, layers):
                 [1],
                 [0]])
 
-    model = nn.LorentzianIntoNeuralNetwork(x, y, layers, alpha, gamma)
+    model = nn.LorentzianInOutNeuralNetwork(x, y, layers, alpha, gamma)
     
     m = np.zeros(1000)
     n = np.zeros(1000)
