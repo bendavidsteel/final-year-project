@@ -48,8 +48,7 @@ class FullLorentzianNeuralNetwork:
     # resizing input and weights for batch processing
     batch_input = np.repeat(self.input, self.hidden_layer_sizes[0], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
     batch_weights_x0 = np.tile(self.weights_x0[0], (self.no_samples, 1)).reshape(self.no_samples, self.weights_x0[0].shape[0], self.weights_x0[0].shape[1])
-    
-    # finding layer output
+
     self.layers.append(np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2))
 
     for i in range(1, len(self.hidden_layer_sizes)):
@@ -448,6 +447,7 @@ class LorentzianInNeuralNetwork:
 
 class LorentzianInOutNeuralNetwork:
   # models 2 spectrometers going into and out of each node
+  # doesn't seem to work
   def __init__(self, x, y, layers, alpha, gamma):
 
     # hyperparameters
@@ -481,6 +481,9 @@ class LorentzianInOutNeuralNetwork:
     # output layer weights
     self.weights_x0k.append(np.random.rand(self.output_size, 1))
     self.weights_x0j.append(np.random.rand(1, self.hidden_layer_sizes[-1]))
+
+    # self.weights_x0j = np.asarray(self.weights_x0j)
+    # self.weights_x0k = np.asarray(self.weights_x0k)
 
     self.output = np.zeros(self.y.shape)
 
@@ -626,8 +629,386 @@ class LorentzianInOutNeuralNetwork:
     grad_weights_x0j = [np.divide(np.sum(weights, axis=0),self.no_samples) for weights in batch_grad_weights_x0j]
 
     # update the weights with the derivative of the loss function
-    self.weights_x0k += self.alpha * np.asarray(grad_weights_x0k)
-    self.weights_x0j += self.alpha * np.asarray(grad_weights_x0j)
+    # self.weights_x0k += self.alpha * grad_weights_x0k
+    # self.weights_x0j += self.alpha * grad_weights_x0j
+
+    self.weights_x0k = [weight - (self.alpha * grad) for weight, grad in zip(self.weights_x0k, grad_weights_x0k)]
+    self.weights_x0j = [weight - (self.alpha * grad) for weight, grad in zip(self.weights_x0j, grad_weights_x0j)]
+    
+
+  def train(self, iterations):
+    #train for number of iterations
+    for i in range(iterations):
+      self.feedForward()
+      self.backProp()
+
+  def predict(self, x):
+    #use model
+    self.input = x
+    self.feedForward()
+
+    return self.output
+
+  def lorentz(self, x, x0):
+    # lorentz function
+    return (0.5*self.gamma)/(np.pi * np.add(np.square(np.subtract(x , x0)) , np.square(0.5*self.gamma)))
+
+  def lorentzDx(self, x, x0):
+    # derivative of lorentz function with respect to x
+    return -4*np.subtract(x , x0)*(np.pi/self.gamma)*np.square(self.lorentz(x, x0))
+
+  def lorentzDx0(self, x, x0):
+    # derivative of lorentz function with respect to x0
+    return 4*np.subtract(x , x0)*(np.pi/self.gamma)*np.square(self.lorentz(x, x0))
+
+  def sigmoid(self, x):
+    # sigmoid function
+    return 1/(1 + np.exp(-x))
+
+  def derivSigmoid(self, x):
+    # derivative of sigmoid function
+    return np.exp(-x)/np.square(1 + np.exp(-x))
+
+
+
+
+
+class LorentzianInInNeuralNetwork:
+  # models 2 spectrometers going into each node
+  def __init__(self, x, y, layers, alpha, gamma):
+
+    # hyperparameters
+    self.hidden_layer_sizes = layers
+    self.alpha = alpha
+    self.gamma = gamma
+
+    # ensuring inputs and targets are np arrays
+    self.input = np.asarray(x)
+    
+    # targets
+    self.y = np.asarray(y)
+
+    # parameters
+    self.no_samples = y.shape[0]
+    self.output_size = y.shape[1]
+    self.input_size = self.input.shape[1]
+
+    self.weights_x01 = []
+    self.weights_x02 = []
+    
+    # first hidden layer weights
+    self.weights_x01.append(np.random.rand(self.hidden_layer_sizes[0], 1))
+    self.weights_x02.append(np.random.rand(self.hidden_layer_sizes[0], 1))
+
+    # additional hidden layer weights
+    for i in range(len(self.hidden_layer_sizes)-1):
+      self.weights_x01.append(np.random.rand(self.hidden_layer_sizes[i+1], 1))
+      self.weights_x02.append(np.random.rand(self.hidden_layer_sizes[i+1], 1))
+    
+    # output layer weights
+    self.weights_x01.append(np.random.rand(self.output_size, 1))
+    self.weights_x02.append(np.random.rand(self.output_size, 1))
+
+    # self.weights_x0j = np.asarray(self.weights_x0j)
+    # self.weights_x0k = np.asarray(self.weights_x0k)
+
+    self.output = np.zeros(self.y.shape)
+
+  def feedForward(self):
+    # performing feed forward step
+    self.layers = []
+
+    # resizing input and weights for batch processing
+    batch_input = np.repeat(self.input, self.hidden_layer_sizes[0], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+    batch_weights_x01 = np.tile(np.repeat(self.weights_x01[0], self.input_size, axis=1), (self.no_samples, 1)).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+
+    batch_inter = self.lorentz(batch_input, batch_weights_x01)
+    batch_weights_x02 = np.tile(np.repeat(self.weights_x02[0], self.input_size, axis=1), (self.no_samples, 1)).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+    
+    # finding layer output
+    self.layers.append(np.sum(self.lorentz(batch_inter, batch_weights_x02), axis=2))
+
+    for i in range(1, len(self.hidden_layer_sizes)):
+      # resizing
+      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      batch_weights_x01 = np.tile(np.repeat(self.weights_x01[i], self.hidden_layer_sizes[i-1], axis=1), (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+
+      batch_inter = self.lorentz(batch_input, batch_weights_x01)
+      batch_weights_x02 = np.tile(np.repeat(self.weights_x02[i], self.hidden_layer_sizes[i-1], axis=1), (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      
+      # finding layer output
+      self.layers.append(np.sum(self.lorentz(batch_inter, batch_weights_x02), axis=2))
+
+    # resizing
+    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+    batch_weights_x01 = np.tile(np.repeat(self.weights_x01[-1], self.hidden_layer_sizes[-1], axis=1), (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.output_size, self.layers[-1].shape[1])
+
+    batch_inter = self.lorentz(batch_input, batch_weights_x01)
+    batch_weights_x02 = np.tile(np.repeat(self.weights_x02[-1], self.hidden_layer_sizes[-1], axis=1), (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.output_size, self.layers[-1].shape[1])
+    
+    self.output = np.sum(self.lorentz(batch_input, batch_weights_x02), axis=2)
+
+  def backProp(self):
+    # application of the chain rule to find derivative of the loss function with respect to weights_x0 and weights_gamma
+    # using cost function squared differences
+    delta = [(2*(self.y - self.output)).reshape(self.no_samples, self.output_size, 1)]
+
+    #chain rule
+    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+    batch_weights_x01 = np.tile(np.repeat(self.weights_x01[-1], self.hidden_layer_sizes[-1], axis=1), (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.output_size, self.layers[-1].shape[1])
+
+    x01_mat = self.lorentz(batch_input, batch_weights_x01)
+    deriv_x01_mat = self.lorentzDx(batch_input, batch_weights_x01)
+
+    batch_weights_x02 = np.tile(np.repeat(self.weights_x02[-1], self.hidden_layer_sizes[-1], axis=1), (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.output_size, self.layers[-1].shape[1])
+
+    deriv_x02_mat = self.lorentzDx(x01_mat, batch_weights_x02)
+
+    deriv_mat = np.multiply(deriv_x02_mat, deriv_x01_mat)
+
+    deriv_mat_T = np.asarray([mat.T for mat in deriv_mat])
+
+    delta.insert(0, np.asarray([np.matmul(mat, delta) for mat, delta in zip(deriv_mat_T, delta[0])]))
+    # inserting new deltas at front of list
+    for i in range(len(self.hidden_layer_sizes)-1, 0, -1):
+      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      batch_weights_x01 = np.tile(np.repeat(self.weights_x01[i], self.hidden_layer_sizes[i-1], axis=1), (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.hidden_layer_sizes[i], self.layers[i-1].shape[1])
+
+      x01_mat = self.lorentz(batch_input, batch_weights_x01)
+      deriv_x01_mat = self.lorentzDx(batch_input, batch_weights_x01)
+
+      batch_weights_x02 = np.tile(np.repeat(self.weights_x02[i], self.hidden_layer_sizes[i-1], axis=1), (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.hidden_layer_sizes[i], self.layers[i-1].shape[1])
+      
+      deriv_x02_mat = self.lorentzDx(x01_mat, batch_weights_x02)
+
+      deriv_mat = np.multiply(deriv_x02_mat, deriv_x01_mat)
+      
+      deriv_mat_T = np.asarray([mat.T for mat in deriv_mat])
+
+      delta.insert(0, np.asarray([np.matmul(mat, delta) for mat, delta in zip(deriv_mat_T, delta[0])]))
+
+    # finding the derivative with respect to weights
+    # resizing input and weights for batch processing
+    batch_input = np.repeat(self.input, self.hidden_layer_sizes[0], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+    batch_weights_x01 = np.tile(np.repeat(self.weights_x01[0], self.input_size, axis=1), (self.no_samples, 1)).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+
+    inter = self.lorentz(batch_input, batch_weights_x01)
+    inter_deriv_x0 = self.lorentzDx0(batch_input, batch_weights_x01)
+
+    batch_weights_x02 = np.tile(np.repeat(self.weights_x02[0], self.input_size, axis=1), (self.no_samples, 1)).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+    
+    deriv = np.sum(self.lorentzDx(inter, batch_weights_x02), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[0], 1)
+    deriv_x0 = np.sum(self.lorentzDx0(inter, batch_weights_x02), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[0], 1)
+
+    # deriv_mat = np.sum(self.lorentzDx0(batch_input, batch_weights_x0), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[0], 1)
+    # delta_mat = np.tile(delta[0], (1,1,self.input_size))
+
+    batch_grad_weights_x02 = [np.multiply(deriv_x0, delta[0])]
+
+    batch_grad_weights_x01 = [np.average(np.multiply(np.multiply(deriv, delta[0]), inter_deriv_x0), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[0], 1)]
+    
+    # for 2nd and more hidden layer weights
+    for i in range(1, len(self.hidden_layer_sizes)):
+      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      batch_weights_x01 = np.tile(np.repeat(self.weights_x01[i], self.hidden_layer_sizes[i-1], axis=1), (self.no_samples, 1)).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+
+      inter = self.lorentz(batch_input, batch_weights_x01)
+      inter_deriv_x0 = self.lorentzDx0(batch_input, batch_weights_x01)
+
+      batch_weights_x02 = np.tile(np.repeat(self.weights_x02[i], self.hidden_layer_sizes[i-1], axis=1), (self.no_samples, 1)).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      
+      deriv = np.sum(self.lorentzDx(inter, batch_weights_x02), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[i], 1)
+      deriv_x0 = np.sum(self.lorentzDx0(inter, batch_weights_x02), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[i], 1)
+
+      # deriv_mat = np.sum(self.lorentzDx0(batch_input, batch_weights_x0), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[0], 1)
+      # delta_mat = np.tile(delta[i], (1,1,self.hidden_layer_sizes[i-1]))
+
+      batch_grad_weights_x02.append(np.multiply(deriv_x0, delta[i]))
+
+      batch_grad_weights_x01.append(np.average(np.multiply(np.multiply(deriv, delta[i]), inter_deriv_x0), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[i], 1))
+
+    # for output layer weights
+    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+    batch_weights_x01 = np.tile(np.repeat(self.weights_x01[-1], self.hidden_layer_sizes[-1], axis=1), (self.no_samples, 1)).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+
+    inter = self.lorentz(batch_input, batch_weights_x01)
+    inter_deriv_x0 = self.lorentzDx0(batch_input, batch_weights_x01)
+
+    batch_weights_x02 = np.tile(np.repeat(self.weights_x02[-1], self.hidden_layer_sizes[-1], axis=1), (self.no_samples, 1)).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+    
+    deriv = np.sum(self.lorentzDx(inter, batch_weights_x02), axis=2).reshape(self.no_samples, self.output_size, 1)
+    deriv_x0 = np.sum(self.lorentzDx0(inter, batch_weights_x02), axis=2).reshape(self.no_samples, self.output_size, 1)
+
+    # deriv_mat = np.sum(self.lorentzDx0(batch_input, batch_weights_x0), axis=2).reshape(self.no_samples, self.hidden_layer_sizes[0], 1)
+    delta_mat = np.tile(delta[-1], (1,1,self.hidden_layer_sizes[-1]))
+
+    batch_grad_weights_x02.append(np.multiply(deriv_x0, delta[-1]))
+
+    batch_grad_weights_x01.append(np.average(np.multiply(np.multiply(deriv, delta[-1]), inter_deriv_x0), axis=2).reshape(self.no_samples, self.output_size, 1))
+    
+    grad_weights_x01 = [np.average(weights, axis=0) for weights in batch_grad_weights_x01]
+    grad_weights_x02 = [np.average(weights, axis=0) for weights in batch_grad_weights_x02]
+
+    # update the weights with the derivative of the loss function
+    # self.weights_x0k += self.alpha * grad_weights_x0k
+    # self.weights_x0j += self.alpha * grad_weights_x0j
+
+    self.weights_x01 = [weight - (self.alpha * grad) for weight, grad in zip(self.weights_x01, grad_weights_x01)]
+    self.weights_x02 = [weight - (self.alpha * grad) for weight, grad in zip(self.weights_x02, grad_weights_x02)]
+    
+
+  def train(self, iterations):
+    #train for number of iterations
+    for i in range(iterations):
+      self.feedForward()
+      self.backProp()
+
+  def predict(self, x):
+    #use model
+    self.input = x
+    self.feedForward()
+
+    return self.output
+
+  def lorentz(self, x, x0):
+    # lorentz function
+    return (0.5*self.gamma)/(np.pi * np.add(np.square(np.subtract(x , x0)) , np.square(0.5*self.gamma)))
+
+  def lorentzDx(self, x, x0):
+    # derivative of lorentz function with respect to x
+    return -4*np.subtract(x , x0)*(np.pi/self.gamma)*np.square(self.lorentz(x, x0))
+
+  def lorentzDx0(self, x, x0):
+    # derivative of lorentz function with respect to x0
+    return 4*np.subtract(x , x0)*(np.pi/self.gamma)*np.square(self.lorentz(x, x0))
+
+  def sigmoid(self, x):
+    # sigmoid function
+    return 1/(1 + np.exp(-x))
+
+  def derivSigmoid(self, x):
+    # derivative of sigmoid function
+    return np.exp(-x)/np.square(1 + np.exp(-x))
+
+
+
+
+
+class FullDerivLorentzianNeuralNetwork:
+  def __init__(self, x, y, layers, alpha, gamma):
+
+    # hyperparameters
+    self.hidden_layer_sizes = layers
+    self.alpha = alpha
+    self.gamma = gamma
+
+    # ensuring inputs and targets are np arrays
+    self.input = np.asarray(x)
+    
+    # targets
+    self.y = np.asarray(y)
+
+    # parameters
+    self.no_samples = y.shape[0]
+    self.output_size = y.shape[1]
+    self.input_size = self.input.shape[1]
+
+    self.weights_x0 = []
+    
+    # first hidden layer weights
+    self.weights_x0.append(np.random.rand(self.hidden_layer_sizes[0], self.input_size))
+
+    # additional hidden layer weights
+    for i in range(len(self.hidden_layer_sizes)-1):
+      self.weights_x0.append(np.random.rand(self.hidden_layer_sizes[i+1], self.hidden_layer_sizes[i]))
+    
+    # output layer weights
+    self.weights_x0.append(np.random.rand(self.output_size, self.hidden_layer_sizes[-1]))
+
+    self.weights_x0 = np.asarray(self.weights_x0)
+
+    self.output = np.zeros(self.y.shape)
+
+  def feedForward(self):
+    # performing feed forward step
+    self.layers = []
+
+    # resizing input and weights for batch processing
+    batch_input = np.repeat(self.input, self.hidden_layer_sizes[0], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+    batch_weights_x0 = np.tile(self.weights_x0[0], (self.no_samples, 1)).reshape(self.no_samples, self.weights_x0[0].shape[0], self.weights_x0[0].shape[1])
+    
+    # finding layer output
+    self.layers.append(np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2))
+
+    for i in range(1, len(self.hidden_layer_sizes)):
+      # resizing
+      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.layers[i-1].shape[1])
+      batch_weights_x0 = np.tile(self.weights_x0[i], (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.weights_x0[i].shape[0], self.weights_x0[i].shape[1])
+      
+      # finding layer output
+      self.layers.append(np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2))
+
+    # resizing
+    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.layers[-1].shape[1])
+    batch_weights_x0 = np.tile(self.weights_x0[-1], (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.weights_x0[-1].shape[0], self.weights_x0[-1].shape[1])
+    
+    self.output = np.sum(self.lorentz(batch_input, batch_weights_x0), axis=2)
+
+  def backProp(self):
+    # application of the chain rule to find derivative of the loss function with respect to weights_x0 and weights_gamma
+    # using cost function squared differences
+    delta = [(2*(self.y - self.output)).reshape(self.no_samples, self.output_size, 1)]
+
+    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+    batch_weights_x0 = np.tile(self.weights_x0[-1], (self.layers[-1].shape[0], 1)).reshape(self.no_samples, self.weights_x0[-1].shape[0], self.weights_x0[-1].shape[1])
+
+    deriv_mat = self.lorentzDx(batch_input, batch_weights_x0)
+    deriv_mat_T = np.asarray([mat.T for mat in deriv_mat])
+
+    delta.insert(0, np.asarray([np.matmul(mat, delta) for mat, delta in zip(deriv_mat_T, delta[0])]))
+    # inserting new deltas at front of list
+    for i in range(len(self.hidden_layer_sizes)-1, 0, -1):
+      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      batch_weights_x0 = np.tile(self.weights_x0[i], (self.layers[i-1].shape[0], 1)).reshape(self.no_samples, self.weights_x0[i].shape[0], self.weights_x0[i].shape[1])
+
+      deriv_mat = self.lorentzDx(batch_input, batch_weights_x0)
+      deriv_mat_T = np.asarray([mat.T for mat in deriv_mat])
+
+      delta.insert(0, np.asarray([np.matmul(mat, delta) for mat, delta in zip(deriv_mat_T, delta[0])]))
+
+    # finding the derivative with respect to weights
+    # resizing input and weights for batch processing
+    batch_input = np.repeat(self.input, self.hidden_layer_sizes[0], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[0], self.input_size)
+    batch_weights_x0 = np.tile(self.weights_x0[0], (self.no_samples, 1)).reshape(self.no_samples, self.weights_x0[0].shape[0], self.weights_x0[0].shape[1])
+    
+    deriv_mat = self.lorentzDx0(batch_input, batch_weights_x0)
+    delta_mat = np.tile(delta[0].reshape(self.no_samples, deriv_mat.shape[1], 1), (1,1,deriv_mat.shape[2]))
+
+    grad_weights_x0 = [np.multiply(deriv_mat, delta_mat)]
+    
+    # for 2nd and more hidden layer weights
+    for i in range(1, len(self.hidden_layer_sizes)):
+      batch_input = np.repeat(self.layers[i-1], self.hidden_layer_sizes[i], axis=0).reshape(self.no_samples, self.hidden_layer_sizes[i], self.hidden_layer_sizes[i-1])
+      batch_weights_x0 = np.tile(self.weights_x0[i], (self.layers[i-1].shape[0], 1)).reshape(self.layers[i-1].shape[0], self.weights_x0[i].shape[0], self.weights_x0[i].shape[1])
+      
+      deriv_mat = self.lorentzDx0(batch_input, batch_weights_x0)
+      delta_mat = np.tile(delta[i].reshape(self.no_samples, deriv_mat.shape[1], 1), (1,1,deriv_mat.shape[2]))
+
+      grad_weights_x0.append(np.multiply(deriv_mat, delta_mat))
+
+    # for output layer weights
+    batch_input = np.repeat(self.layers[-1], self.output_size, axis=0).reshape(self.no_samples, self.output_size, self.hidden_layer_sizes[-1])
+    batch_weights_x0 = np.tile(self.weights_x0[-1], (self.layers[-1].shape[0], 1)).reshape(self.layers[-1].shape[0], self.weights_x0[-1].shape[0], self.weights_x0[-1].shape[1])
+    
+    deriv_mat = self.lorentzDx0(batch_input, batch_weights_x0)
+    delta_mat = np.tile(delta[-1].reshape(self.no_samples, deriv_mat.shape[1], 1), (1,1,deriv_mat.shape[2]))
+
+    grad_weights_x0.append(np.multiply(deriv_mat, delta_mat))
+    
+    grad_weights = [np.divide(np.sum(weights, axis=0),self.no_samples) for weights in grad_weights_x0]
+
+    # update the weights with the derivative of the loss function
+    self.weights_x0 += self.alpha * np.asarray(grad_weights)
     
 
   def train(self, iterations):

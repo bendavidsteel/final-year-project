@@ -3,9 +3,12 @@
 # cma library taken from https://github.com/CMA-ES/pycma
 
 import neuralnetwork as nn
+import BetterNeuralNetworks as bnn
+import PyTorchNeuralNetworks as pnn
 import numpy as np
 # import cma
 import matplotlib.pyplot as plt
+import time
 
 def evalLorentzErrorCurve(alpha, gamma, layers):
     x = np.array([[0,0],
@@ -18,14 +21,16 @@ def evalLorentzErrorCurve(alpha, gamma, layers):
                 [1],
                 [0]])
 
-    model = nn.LorentzianInOutNeuralNetwork(x, y, layers, alpha, gamma)
+    model = bnn.FullDerivLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
     
-    m = np.zeros(1000)
-    n = np.zeros(1000)
+    training_iters = 1000
+
+    m = np.zeros(training_iters)
+    n = np.zeros(training_iters)
 
     print(model.predict(x))
 
-    for i in range(1000):
+    for i in range(training_iters):
         model.train(10)
 
         m[i] = i * 10
@@ -64,12 +69,15 @@ def evalLorentzGamma():
 
     m = np.linspace(-2, 2, 100)
     n = np.zeros(100)
+    
+    file = open('FullDerivLorentzGammaErrorXOR.txt', 'w')
+    file.write("Gamma ; Error after 10000 iterations, 10 iterations ; first layer weights ; output layer weights\n")
 
     for i in range(len(m)):
         # find average performance
         for j in range(iters):
 
-            model = FullLorentzianNeuralNetwork(x, y, layers, alpha, m[i])
+            model = bnn.FullDerivLorentzianNeuralNetwork(x, y, layers, alpha, m[i])
 
             model.train(10000)
 
@@ -77,7 +85,11 @@ def evalLorentzGamma():
 
         n[i] /= iters
 
+        file.write(str(m[i]) + ' ; ' + str(n[i]) + ' ; ' + str(model.weights_x0) + '\n')
+
         print(str(i) + "%")
+
+    file.close()
 
     best_gamma = m[np.argmin(n)]
 
@@ -107,20 +119,20 @@ def evalLorentzComplexity():
 
     iters = 10
 
-    error = np.zeros((19,4))
+    error = np.zeros((19,19))
 
-    file = open('FullLorentzComplexityErrorXOR.txt', 'w')
-    file.write("Layer Size, No Layers; Error after 10000 iterations with Gamma 1")
+    file = open('SqrtLorentzComplexityErrorXOR.txt', 'w')
+    file.write("Layer Size, No Layers; Error after 10000 iterations with Gamma 1\n")
 
     for layer_size in range(2, 21):
         print(layer_size)
-        for no_layers in range(1,5):
+        for no_layers in range(1,20):
 
             err = 0
 
             for i in range(iters):
 
-                model = FullLorentzianNeuralNetwork(x, y, no_layers*[layer_size], alpha, gamma)
+                model = nn.SqrtLorentzianNeuralNetwork(x, y, no_layers*[layer_size], alpha, gamma)
 
                 model.train(10000)
 
@@ -128,7 +140,7 @@ def evalLorentzComplexity():
 
             error[layer_size - 1][no_layers - 1] = err/iters
 
-            file.write(str(layer_size) + ',' + str(no_layers) + ';' + str(err/iters))
+            file.write(str(layer_size) + ',' + str(no_layers) + ';' + str(err/iters) + '\n')
 
     file.close()
 
@@ -148,4 +160,26 @@ def evalLorentzComplexity():
     plt.legend((a1,a2,a3,a4), (m1,m2,m3,m4))
     plt.show()
 
-evalLorentzErrorCurve(0.001, 1, [5,3])
+def evalSpeed():
+    x = np.array([[0,0],
+                [0,1],
+                [1,0],
+                [1,1]])
+
+    y = np.array([[0],
+                [1],
+                [1],
+                [0]])
+
+    model = pnn.FullLorentzianNeuralNetwork(x, y, [5,3], 0.001, 1)
+    
+    training_iters = 10000
+    
+    t0 = time.time()
+    model.train(training_iters)
+    t1 = time.time()
+
+    print(str(t1-t0))
+
+
+evalLorentzGamma()
