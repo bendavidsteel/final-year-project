@@ -45,10 +45,28 @@ end
 inputs = [0,0;0,1;1,0;1,1];
 targets = [0 ; 1 ; 1 ; 0];
 
-input = repmat(inputs(1,:), hidden_layer_size, 1);
-layer = sum(lorentzian(input, squeeze(first_weights(1,:,:)), gamma(1)*ones(hidden_layer_size,input_size)), 2);
+% input = repmat(inputs(1,:), hidden_layer_size, 1);
+% layer = sum(lorentzian(input, squeeze(first_weights(1,:,:)), gamma(1)*ones(hidden_layer_size,input_size)), 2);
+% 
+% output = lorentzian(layer', second_weights(1,:), gamma(1)*ones(output_size,hidden_layer_size));
+% 
+% layers = zeros(num, hidden_layer_size, length(targets));
+% outputs = zeros(num, hidden_layer_size, length(targets));
+% 
+% for i = 1:num
+%     for j = 1:length(inputs)
+%         input = repmat(inputs(j,:), hidden_layer_size, 1);
+%         layer = sum(lorentzian(input, squeeze(first_weights(i,:,:)), gamma(i)*ones(hidden_layer_size,input_size)), 2);
+% 
+%         layers(i,j,:) = layer';
+%         outputs(i,j,:) = lorentzian(layer', second_weights(i,:), gamma(i)*ones(output_size,hidden_layer_size));
+%     end
+% end
 
-output = lorentzian(layer', second_weights(1,:), gamma(1)*ones(output_size,hidden_layer_size));
+input = repmat(inputs(1,:), hidden_layer_size, 1);
+layer = sum(lorentzianDx(input, squeeze(first_weights(1,:,:)), gamma(1)*ones(hidden_layer_size,input_size)), 2);
+
+output = lorentzianDx(layer', second_weights(1,:), gamma(1)*ones(output_size,hidden_layer_size));
 
 layers = zeros(num, hidden_layer_size, length(targets));
 outputs = zeros(num, hidden_layer_size, length(targets));
@@ -56,20 +74,20 @@ outputs = zeros(num, hidden_layer_size, length(targets));
 for i = 1:num
     for j = 1:length(inputs)
         input = repmat(inputs(j,:), hidden_layer_size, 1);
-        layer = sum(lorentzian(input, squeeze(first_weights(i,:,:)), gamma(i)*ones(hidden_layer_size,input_size)), 2);
+        layer = sum(lorentzianDx(input, squeeze(first_weights(i,:,:)), gamma(i)*ones(hidden_layer_size,input_size)), 2);
 
         layers(i,j,:) = layer';
-        outputs(i,j,:) = lorentzian(layer', second_weights(i,:), gamma(i)*ones(output_size,hidden_layer_size));
+        outputs(i,j,:) = lorentzianDx(layer', second_weights(i,:), gamma(i)*ones(output_size,hidden_layer_size));
     end
 end
 
-g = 55;
+g = 63;
 
-x = 0:0.001:4;
+x = -5:0.001:5;
 
 for i = 1:hidden_layer_size
     subplot(hidden_layer_size, 2, (2*i)-1)
-    y = lorentzian(x, second_weights(g,i), gamma(g));
+    y = lorentzianDx(x, second_weights(g,i), gamma(g));
     plot(x,y)
     hold on
     a1 = scatter(layers(g,1,i), outputs(g,1,i), '*');

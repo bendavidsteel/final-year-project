@@ -6,6 +6,7 @@ import neuralnetwork as nn
 import BetterNeuralNetworks as bnn
 import PyTorchNeuralNetworks as pnn
 import numpy as np
+from sklearn.neural_network import MLPRegressor
 # import cma
 import matplotlib.pyplot as plt
 import time
@@ -21,7 +22,7 @@ def evalLorentzErrorCurve(alpha, gamma, layers):
                 [1],
                 [0]])
 
-    model = bnn.FullDerivLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
+    model = bnn.ActivationLorentzianNeuralNetwork(x, y, layers, alpha = alpha, gamma = gamma, x0 = -1)
     
     training_iters = 1000
 
@@ -181,5 +182,72 @@ def evalSpeed():
 
     print(str(t1-t0))
 
+def compareLorentzErrorCurve():
+    x = np.array([[0,0],
+                [0,1],
+                [1,0],
+                [1,1]])
 
-evalLorentzGamma()
+    y = np.array([[0],
+                [1],
+                [1],
+                [0]])
+
+    layers = [8]
+    alpha = 0.001
+    gamma = 1
+
+    training_iters = 1000
+    training_batch = 100
+
+    modelLorentz = bnn.FullLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
+    modelDerivLorentz = bnn.FullDerivLorentzianNeuralNetwork(x, y, layers, alpha, gamma)
+    
+    modelSigmoid = bnn.SigmoidNeuralNetwork(x, y)
+    
+    m = np.zeros(training_iters)
+
+    repeats = 10
+
+    errorLorentz = np.zeros((training_iters, repeats))
+    errorDerivLorentz = np.zeros((training_iters, repeats))
+    errorSigmoid = np.zeros((training_iters, repeats))
+    # errorTanh = np.zeros(training_iters)
+    # errorReLU = np.zeros(training_iters)
+
+    file = open('CompareErrorCurves.txt', 'w')
+    file.write("Training Iterations; Lorentz , DerivLorentz , Sigmoid , Tanh , ReLU\n")
+
+    for j in range(repeats):
+        for i in range(training_iters):
+
+            errorLorentz[i, j] = np.sum(np.square(modelLorentz.predict(x) - y))
+            errorDerivLorentz[i, j] = np.sum(np.square(modelDerivLorentz.predict(x) - y))
+            errorSigmoid[i, j] = np.sum(np.square(modelSigmoid.predict(x) - y))
+
+            modelLorentz.train(training_batch)
+            modelDerivLorentz.train(training_batch)
+            modelSigmoid.train(training_batch)
+            # modelTanh.fit(x, y_)
+            # modelReLU.fit(x, y_)
+
+            m[i] = i * training_batch
+
+
+            # file.write(str(m[i]) + ';' + str(errorLorentz[i]) + ',' + str(errorDerivLorentz[i]) + ',' + str(errorSigmoid[i]) + ',' + str(errorTanh[i]) + ',' + str(errorReLU[i]) + '\n')
+            
+    errorLorentz = np.mean(errorLorentz, axis=1)
+    errorDerivLorentz = np.mean(errorDerivLorentz, axis=1)
+    errorSigmoid = np.mean(errorSigmoid, axis=1)
+
+    for i in range(training_iters):
+        file.write(str(m[i]) + ';' + str(errorLorentz[i]) + ',' + str(errorDerivLorentz[i]) + ',' + str(errorSigmoid[i]) + '\n')
+
+    file.close()
+
+    return
+
+
+evalLorentzErrorCurve(0.001, 1, [5, 3])
+
+
