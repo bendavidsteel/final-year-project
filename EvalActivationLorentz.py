@@ -4,6 +4,46 @@ import numpy as np
 import BetterNeuralNetworks as bnn
 import matplotlib.pyplot as plt
 
+
+def evalLorentzErrorCurve():
+    x = np.array([[0,0],
+                [0,1],
+                [1,0],
+                [1,1]])
+
+    y = np.array([[0],
+                [1],
+                [1],
+                [0]])
+
+    alpha = 0.01
+    gamma = 1
+    layers = [4]
+
+    model = bnn.TunableLorentzianNeuralNetwork(x, y, layers, alpha = alpha, gamma = gamma)
+    
+    training_iters = 1000
+
+    m = np.zeros(training_iters)
+    n = np.zeros(training_iters)
+
+    print(model.predict(x))
+
+    for i in range(training_iters):
+        model.train(10)
+
+        m[i] = i * 10
+        n[i] = np.sum(np.square(model.predict(x) - y))
+
+    print(model.predict(x))
+
+    plt.plot(m, n)
+    plt.axis([0, np.max(m), 0, np.max(n)])
+    plt.ylabel("Error")
+    plt.xlabel("Iterations")
+    plt.title("Error decreasing with increasing training iterations, with Gamma = " + str(gamma))
+    plt.show()
+
 def evalLorentzParameters():
     x = np.array([[0,0],
                 [0,1],
@@ -54,4 +94,4 @@ def evalLorentzParameters():
     plt.show()
 
 
-evalLorentzParameters()
+evalLorentzErrorCurve()
