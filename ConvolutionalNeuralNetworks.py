@@ -2,21 +2,25 @@
 # https://github.com/Alescontrela/Numpy-CNN
 
 import numpy as np
+import gzip
 
 # Needs extra light sources, normal weights with tunable activation function, (effectively bias weight)
 # Convolutional
 class ConvTuneLorentzNetwork:
-  def __init__(self, x, y, full_layer_size = 128, alpha=0.001, gamma=1, num_classes = 10, img_dim = 28, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, batch_size = 32, num_epochs = 2):
+  def __init__(self, x, y, full_layer_size = 128, alpha=0.001, gamma=1, no_classes = 10, img_dim = 28, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, batch_size = 32, no_epochs = 2):
 
     # hyperparameters
     self.alpha = alpha
     self.gamma = gamma
     self.full_layer_size = full_layer_size
+    self.no_classes = no_classes
+    self.no_epochs = no_epochs
+    self.batch_size = batch_size
 
     # training data
     self.no_samples = 50000
-    self.input = extract_data('train-images-idx3-ubyte.gz', m, img_dim)
-    self.targets = extract_labels('train-labels-idx1-ubyte.gz', m).reshape(m,1)
+    self.input = self.extract_data('train-images-idx3-ubyte.gz', m, img_dim)
+    self.targets = self.extract_labels('train-labels-idx1-ubyte.gz', m).reshape(m,1)
 
     # normalising
     self.input -= int(np.mean(self.input))
@@ -24,31 +28,27 @@ class ConvTuneLorentzNetwork:
 
     # partitioning data
     # SPLIT LATER ON INTO TRAINING AND VALIDATION
-    train_data = np.hstack((self.input , self.targets))
+    self.train_data = np.hstack((self.input , self.targets))
     
     # shuffling dataset
-    np.random.shuffle(train_data)
+    np.random.shuffle(self.train_data)
 
-    ## initializing kernels
-    f1, f2, w3, w4 = , , , 
-    kernel1 = initializeFilter((num_filt1, img_depth, f, f))
-    kernel2 = initializeFilter((num_filt2, num_filt1, f, f))
+    # initializing kernels
+    self.kernel1 = self.initializeFilter((num_filt1, img_depth, f, f))
+    self.kernel2 = self.initializeFilter((num_filt2, num_filt1, f, f))
 
     num_conv_layers = 2
     self.flat_size = ((img_dim - num_conv_layers*(f - 1))**2) * num_filt2
 
-    w3 = initializeWeight((full_layer_size, 800))
-    w4 = initializeWeight((10, 128))
+    self.weights3 = self.initializeWeight((self.full_layer_size, self.flat_size))
+    self.weights4 = self.initializeWeight((self.no_classes, self.full_layer_size))
 
+    self.bias1 = np.zeros((num_filt1, 1))
+    self.bias2 = np.zeros((num_filt2, 1))
+    self.bias3 = np.zeros((self.full_layer_size, 1))
+    self.bias4 = np.zeros((self.no_classes, 1))
 
-    self.bias = []
-
-    for i in range(1, len(self.layer_sizes)):
-      self.bias.append(np.random.rand(self.layer_sizes[i]) - 0.5)
-
-    self.bias = np.asarray(self.bias)
-
-    self.output = np.zeros(self.y.shape)
+    # self.output = np.zeros(self.y.shape)
 
   def feedForward(self):
     # performing feed forward step
@@ -135,11 +135,20 @@ class ConvTuneLorentzNetwork:
     self.bias += self.alpha * np.asarray(grad_bias_ave)
     
 
-  def train(self, iterations):
-    #train for number of iterations
-    for i in range(iterations):
-      self.feedForward()
-      self.backProp()
+  def train(self):
+    # train
+    for epoch in range(self.no_epochs):
+        np.random.shuffle(self.train_data)
+        # TODO try not to use shape
+        batches = [self.train_data[k:k + self.batch_size] for k in range(0, self.train_data.shape[0], self.batch_size)]
+
+        # t = tqdm(batches)
+        for i in range(len(batches)):
+            x, batch = batches[i]
+            # params, cost = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost)
+            self.feedForward()
+            self.backProp()
+            
 
   def predict(self, x):
     #use model
@@ -159,3 +168,34 @@ class ConvTuneLorentzNetwork:
   def lorentzDx0(self, x, x0):
     # derivative of lorentz function with respect to x0
     return 4*(x - x0) * (np.pi / self.gamma) * np.square(self.lorentz(x, x0))
+
+  def initializeFilter(self, size, scale = 1.0):
+    stddev = scale/np.sqrt(np.prod(size))
+    return np.random.normal(loc = 0, scale = stddev, size = size)
+
+  def initializeWeight(self, size):
+    return np.random.standard_normal(size=size) * 0.01
+
+  def extract_data(self, filename, num_images, IMAGE_WIDTH):
+    '''
+    Extract images by reading the file bytestream. Reshape the read values into a 3D matrix of dimensions [m, h, w], where m 
+    is the number of training examples.
+    '''
+    print('Extracting', filename)
+    with gzip.open(filename) as bytestream:
+        bytestream.read(16)
+        buf = bytestream.read(IMAGE_WIDTH * IMAGE_WIDTH * num_images)
+        data = np.frombuffer(buf, dtype=np.uint8).astype(np.float32)
+        data = data.reshape(num_images, IMAGE_WIDTH*IMAGE_WIDTH)
+        return data
+
+  def extract_labels(self, filename, num_images):
+    '''
+    Extract label into vector of integer values of dimensions [m, 1], where m is the number of images.
+    '''
+    print('Extracting', filename)
+    with gzip.open(filename) as bytestream:
+        bytestream.read(8)
+        buf = bytestream.read(1 * num_images)
+        labels = np.frombuffer(buf, dtype=np.uint8).astype(np.int64)
+    return labels
