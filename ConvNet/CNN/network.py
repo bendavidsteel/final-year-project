@@ -340,18 +340,18 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
     b1, b2, b3 = (num_filt1, 1), (num_filt2, 1), (num_filt3, 1)
     b4, b5 = (full_layer_size, 1), (num_classes, 1)
 
-    b1 = np.zeros(b1)
-    b2 = np.zeros(b2)
-    b3 = np.zeros(b3)
-    b4 = np.zeros(b4)
-    b5 = np.zeros(b5)
+    b1 = initializeBias(b1)
+    b2 = initializeBias(b2)
+    b3 = initializeBias(b3)
+    b4 = initializeBias(b4)
+    b5 = initializeBias(b5)
 
     params = [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5]
 
     conv_s = 1
     pool_f = 2
     pool_s = 2
-    gamma = 1
+    gamma = 1 / full_layer_size
 
     config = [num_filt1, num_filt2, num_filt3, conv_s, pool_f, pool_s, gamma]
 

@@ -42,7 +42,12 @@ def initializeFilter(size, scale = 1.0):
     return np.abs(np.random.normal(loc = 0, scale = stddev, size = size))
 
 def initializeWeight(size):
-    return np.abs(np.random.standard_normal(size=size) * 0.01)
+    stddev = 1/np.sqrt(np.prod(size))
+    return np.abs(np.random.normal(loc = 0, scale = stddev, size = size))
+
+def initializeBias(size):
+    stddev = 1/np.sqrt(np.prod(size))
+    return np.random.normal(loc = 0, scale = stddev, size = size)
 
 def nanargmax(arr):
     idx = np.nanargmax(arr)
