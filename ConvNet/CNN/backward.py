@@ -8,7 +8,7 @@ Date: June 12th, 2018
 
 import numpy as np
 
-from utils import *
+from CNN.utils import *
 
 #####################################################
 ############### Backward Operations #################
@@ -23,7 +23,6 @@ def convolutionBackward(dconv_prev, conv_in, filt, s):
     ## initialize derivatives
     dout = np.zeros(conv_in.shape) 
     dfilt = np.zeros(filt.shape)
-    dbias = np.zeros((n_f,1))
     for curr_f in range(n_f):
         # loop through all filters
         curr_y = out_y = 0
@@ -38,10 +37,8 @@ def convolutionBackward(dconv_prev, conv_in, filt, s):
                 out_x += 1
             curr_y += s
             out_y += 1
-        # loss gradient of the bias
-        dbias[curr_f] = np.sum(dconv_prev[curr_f])
     
-    return dout, dfilt, dbias
+    return dout, dfilt
 
 
 

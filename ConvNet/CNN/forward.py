@@ -32,7 +32,7 @@ def convolution(image, filt, s=1):
         while curr_y + f <= in_dim:
             curr_x = out_x = 0
             while curr_x + f <= in_dim:
-                out[curr_f, out_y, out_x] = np.sum(filt[curr_f] * image[:,curr_y:curr_y+f, curr_x:curr_x+f]) + bias[curr_f]
+                out[curr_f, out_y, out_x] = np.sum(filt[curr_f] * image[:,curr_y:curr_y+f, curr_x:curr_x+f])
                 curr_x += s
                 out_x += 1
             curr_y += s
@@ -92,9 +92,15 @@ def softmax(X):
     return out/np.sum(out)
 
 def categoricalCrossEntropy(probs, label):
-    return -1*np.sum(label * np.log(probs))
+    return -1*np.sum(label * np.log(np.abs(probs)))
+
+def categoricalCrossEntropyBackwards(probs, label):
+    return -1 * label / probs
 
 def meanSquaredError(probs, label):
+    return np.sum(np.square(probs - label))
+
+def meanSquaredErrorBackwards(probs, label):
     return 2*(probs - label)
 
 def lorentz(x, x0, gamma):
