@@ -87,7 +87,7 @@ def conv(image, label, params, config):
     
     grads = [df1, df2, df3, dw4, dw5, db1, db2, db3, db4, db5] 
     
-    return grads, loss
+    return grads, loss, nonlin1, nonlin2, pooled, a
 
 #####################################################
 ################### Optimization ####################
@@ -154,7 +154,7 @@ def adamGD(batch, num_classes, lr, dim, n_c, beta1, beta2, params, cost, config)
         pool_s = 2
         gamma = 1
 
-        grads, loss = conv(x, y, params, config)
+        grads, loss, nl1, nl2, nl3, nl4 = conv(x, y, params, config)
         [df1_, df2_, df3_, dw4_, dw5_, db1_, db2_, db3_, db4_, db5_] = grads
         
         df1 += df1_
@@ -219,7 +219,7 @@ def adamGD(batch, num_classes, lr, dim, n_c, beta1, beta2, params, cost, config)
 
     params = [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5]
     
-    return params, cost
+    return params, cost, nl1, nl2, nl3, nl4
 
 
 def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
@@ -313,6 +313,7 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
     m = 50000
     X = extract_data('train-images-idx3-ubyte.gz', m, img_dim)
     y_dash = extract_labels('train-labels-idx1-ubyte.gz', m).reshape(m,1)
+
     X-= int(np.mean(X))
     X/= int(np.std(X))
     train_data = np.hstack((X,y_dash))
@@ -323,13 +324,13 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
     pool_f = 2
 
     num_conv_layers = 2
-    flat_size = (((img_dim - num_conv_layers*(f - 1))//(2*2//2))**2) * num_filt3
+    flattened_size = (((img_dim - num_conv_layers*(f - 1))//(2*2//2))**2) * num_filt3
 
     full_layer_size = 128
 
     ## Initializing all the parameters
     f1, f2, f3 = (num_filt1, img_depth, f, f), (num_filt2, num_filt1, f, f), (num_filt3, num_filt2, pool_f, pool_f)
-    w4, w5 = (full_layer_size, flat_size), (num_classes, full_layer_size)
+    w4, w5 = (full_layer_size, flattened_size), (num_classes, full_layer_size)
 
     f1 = initializeFilter(f1)
     f2 = initializeFilter(f2)
@@ -351,11 +352,20 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
     conv_s = 1
     pool_f = 2
     pool_s = 2
-    gamma = 1 / full_layer_size
+    gamma = 2 * full_layer_size / np.pi
 
     config = [num_filt1, num_filt2, num_filt3, conv_s, pool_f, pool_s, gamma]
 
     cost = []
+
+    nl1_m = []
+    nl1_std = []
+    nl2_m = []
+    nl2_std = []
+    nl3_m = []
+    nl3_std = []
+    nl4_m = []
+    nl4_std = []
 
     print("LR:"+str(lr)+", Batch Size:"+str(batch_size))
 
@@ -365,10 +375,26 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
 
         t = tqdm(batches)
         for x,batch in enumerate(t):
-            params, cost = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, config)
+            params, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, config)
             t.set_description("Cost: %.2f" % (cost[-1]))
+
+            nl1_m.append(np.mean(nl1))
+            nl1_std.append(np.std(nl1))
+
+            nl2_m.append(np.mean(nl2))
+            nl2_std.append(np.std(nl2))
+
+            nl3_m.append(np.mean(nl3))
+            nl3_std.append(np.std(nl3))
+
+            nl4_m.append(np.mean(nl4))
+            nl4_std.append(np.std(nl4))
+
+    layer_mean = [nl1_m, nl2_m, nl3_m, nl4_m]
+    layer_std = [nl1_std, nl2_std, nl3_std, nl4_std]
+    final_layer = [nl1, nl2, nl3, nl4]
             
-    to_save = [params, cost]
+    to_save = [params, cost, layer_mean, layer_std, final_layer]
     
     with open(save_path, 'wb') as file:
         pickle.dump(to_save, file)

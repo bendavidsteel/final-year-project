@@ -16,7 +16,7 @@ import pickle
 
 if __name__ == '__main__':
     
-    save_path = 'params1'
+    save_path = 'adamGD_SoftmaxCross_LargePropGamma_DefaultNet_MNIST_NLdata'
     
     cost = train(save_path = save_path)
 
