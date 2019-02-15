@@ -17,8 +17,9 @@ import pickle
 if __name__ == '__main__':
     
     save_path = 'adamGD_SoftmaxCross_2overpiGamma_AlteredNet_SimpleDigits_NLdata'
-    
-    cost = train(save_path = save_path)
+    gamma = 2/np.pi
+
+    cost = train(gamma = gamma, save_path = save_path)
 
     params, cost, layer_mean, layer_std, final_layer = pickle.load(open(save_path, 'rb'))
     [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5] = params
@@ -31,16 +32,14 @@ if __name__ == '__main__':
     plt.show()
 
     # Get test data
-    m =10000
-    X = extract_data('t10k-images-idx3-ubyte.gz', m, 28)
-    y_dash = extract_labels('t10k-labels-idx1-ubyte.gz', m).reshape(m,1)
+    X, y_dash = generateDataset()
     # Normalize the data
-    X-= int(np.mean(X)) # subtract mean
-    X/= int(np.std(X)) # divide by standard deviation
+    X -= np.mean(X) # subtract mean
+    X /= np.std(X) # divide by standard deviation
     test_data = np.hstack((X,y_dash))
     
     X = test_data[:,0:-1]
-    X = X.reshape(len(test_data), 1, 28, 28)
+    X = X.reshape(len(test_data), 1, 8, 8)
     y = test_data[:,-1]
 
     corr = 0
@@ -52,13 +51,11 @@ if __name__ == '__main__':
 
     t = tqdm(range(len(X)), leave=True)
 
-    num_filt1 = num_filt2 = num_filt3 = 8
+    num_filt1 = num_filt2 = 5
     conv_s = 1
-    pool_f = pool_s = 2
-    gamma = 1
 
     params = [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5]
-    config = [num_filt1, num_filt2, num_filt3, conv_s, pool_f, pool_s, gamma]
+    config = [num_filt1, num_filt2, conv_s, gamma]
 
     for i in t:
         x = X[i]
