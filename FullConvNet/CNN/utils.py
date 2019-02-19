@@ -60,25 +60,27 @@ def predict(image, label, params, config):
     Make predictions with trained filters/weights. 
     '''
     
-    [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5] = params 
-    [num_filt1, num_filt2, num_filt3, conv_s, pool_f, pool_s, gamma] = config
+    [f1, f2, w3, w4, w5] = params 
+    [num_filt1, num_filt2, conv_s, gamma] = config
     
-    conv1 = convolution(image, f1, s = conv_s) # convolution operation
-    nonlin1 = lorentz(conv1, b1.reshape(num_filt1, 1, 1), gamma) # pass through Lorentzian non-linearity
+    ################################################
+    ############## Forward Operation ###############
+    ################################################
+    conv1 = convolutionLorentz(image, f1, gamma, s = conv_s) # convolution operation
     
-    conv2 = convolution(nonlin1, f2, s = conv_s) # second convolution operation
-    nonlin2 = lorentz(conv2, b2.reshape(num_filt2, 1, 1), gamma) # pass through Lorentzian non-linearity
+    conv2 = convolutionLorentz(conv1, f2, gamma, s = conv_s) # second convolution operation
     
-    conv3 = convolution(nonlin2, f3, s = pool_s) # using convolution with higher stride as pooling layer
-    pooled = lorentz(conv3, b3.reshape(num_filt3, 1, 1), gamma)
+    (nf2, dim2, _) = conv2.shape
+    fc = conv2.reshape((nf2 * dim2 * dim2, 1)) # flatten pooled layer
     
-    (nf2, dim2, _) = pooled.shape
-    fc = pooled.reshape((nf2 * dim2 * dim2, 1)) # flatten pooled layer
+    a1 = lorentz(fc.T, w3, gamma)
+    z1 = np.sum(a1, axis=1).reshape((-1,1))
+
+    a2 = lorentz(z1.T, w4, gamma)
+    z2 = np.sum(a2, axis=1).reshape((-1,1))
     
-    z = w4.dot(fc) # first dense layer
-    a = lorentz(z, b4, gamma) # pass through Lorentzian non-linearity
-    
-    out = w5.dot(a) + b5 # second dense layer
+    a3 = lorentz(z2.T, w5, gamma)
+    out = np.sum(a3, axis=1).reshape((-1,1))
 
     out /= np.sum(out)
     

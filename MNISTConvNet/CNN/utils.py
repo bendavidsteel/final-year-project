@@ -37,36 +37,6 @@ def extract_labels(filename, num_images):
         labels = np.frombuffer(buf, dtype=np.uint8).astype(np.int64)
     return labels
 
-def extract_medium_digit_dataset():
-	'''
-	Extract semeion handwritten digit dataset
-	'''
-	with open('semeion.data', 'r') as f:
-
-		digits = []
-		labels = []
-
-		for line in f:
-			data = line.split(' ')
-
-			digit_str = data[:256]
-			label_str = data[256:266]
-			
-			digit = np.asarray([float(x) for x in digit_str])
-			label_arr = np.asarray([int(x) for x in label_str])
-
-			digits.append(digit)
-			
-			label = 0
-
-			for i in range(len(label_arr)):
-				if label_arr[i] == 1:
-					label = i
-
-			labels.append(label)
-
-	return np.asarray(digits), np.asarray(labels)
-
 def initializeFilter(size, scale = 1.0):
     stddev = scale/np.sqrt(np.prod(size))
     return np.abs(np.random.normal(loc = 0, scale = stddev, size = size))
@@ -85,26 +55,30 @@ def nanargmax(arr):
     idxs = np.unravel_index(idx, arr.shape)
     return idxs    
 
-def predict(image, label, params, gamma):
+def predict(image, label, params, config):
     '''
     Make predictions with trained filters/weights. 
     '''
     
-    [f1, f2, w3, w4, b1, b2, b3, b4] = params 
+    [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5] = params 
+    [num_filt1, num_filt2, num_filt3, conv_s, pool_f, pool_s, gamma] = config
     
-    conv1 = convolution(image, f1) # convolution operation
-    nonlin1 = lorentz(conv1, b1.reshape(-1, 1, 1), gamma) # pass through Lorentzian non-linearity
+    conv1 = convolution(image, f1, s = conv_s) # convolution operation
+    nonlin1 = lorentz(conv1, b1.reshape(num_filt1, 1, 1), gamma) # pass through Lorentzian non-linearity
     
-    conv2 = convolution(nonlin1, f2) # second convolution operation
-    pooled = lorentz(conv2, b2.reshape(-1, 1, 1), gamma) # pass through Lorentzian non-linearity
+    conv2 = convolution(nonlin1, f2, s = conv_s) # second convolution operation
+    nonlin2 = lorentz(conv2, b2.reshape(num_filt2, 1, 1), gamma) # pass through Lorentzian non-linearity
+    
+    conv3 = convolution(nonlin2, f3, s = pool_s) # using convolution with higher stride as pooling layer
+    pooled = lorentz(conv3, b3.reshape(num_filt3, 1, 1), gamma)
     
     (nf2, dim2, _) = pooled.shape
     fc = pooled.reshape((nf2 * dim2 * dim2, 1)) # flatten pooled layer
     
-    z = w3.dot(fc) # first dense layer
-    a = lorentz(z, b3, gamma) # pass through Lorentzian non-linearity
+    z = w4.dot(fc) # first dense layer
+    a = lorentz(z, b4, gamma) # pass through Lorentzian non-linearity
     
-    out = w4.dot(a) + b4 # second dense layer
+    out = w5.dot(a) + b5 # second dense layer
 
     out /= np.sum(out)
     

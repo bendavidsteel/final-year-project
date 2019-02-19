@@ -39,13 +39,13 @@ def conv(image, label, params, config):
     fc = conv2.reshape((nf2 * dim2 * dim2, 1)) # flatten pooled layer
     
     a1 = lorentz(fc.T, w3, gamma)
-    z1 = np.sum(a1, axis=1)
+    z1 = np.sum(a1, axis=1).reshape((-1,1))
 
     a2 = lorentz(z1.T, w4, gamma)
-    z2 = np.sum(a2, axis=1)
+    z2 = np.sum(a2, axis=1).reshape((-1,1))
     
     a3 = lorentz(z2.T, w5, gamma)
-    out = np.sum(a3, axis=1)
+    out = np.sum(a3, axis=1).reshape((-1,1))
 
     probs = softmax(out) # predict class probabilities with the softmax activation function
     
@@ -58,15 +58,15 @@ def conv(image, label, params, config):
     ################################################
     ############# Backward Operation ###############
     ################################################
-    dout = probs.reshape((10,1)) - label # derivative of loss w.r.t. final dense layer output
+    dout = probs - label # derivative of loss w.r.t. final dense layer output
 
-    dw5 = dout * lorentzDx0(z2, w5, gamma) # loss gradient of final dense layer weights
+    dw5 = dout * lorentzDx0(z2.T, w5, gamma) # loss gradient of final dense layer weights
     
-    dz2 = lorentzDx(z2, w5, gamma).T.dot(dout) # loss gradient of first dense layer outputs 
+    dz2 = lorentzDx(z2.T, w5, gamma).T.dot(dout) # loss gradient of first dense layer outputs 
 
-    dw4 = dz2 * lorentzDx0(z1, w4, gamma)
+    dw4 = dz2 * lorentzDx0(z1.T, w4, gamma)
     
-    dz1 = lorentzDx(z1, w4, gamma).T.dot(dz2) # loss gradients of fully-connected layer
+    dz1 = lorentzDx(z1.T, w4, gamma).T.dot(dz2) # loss gradients of fully-connected layer
 
     dw3 = dz1 * lorentzDx0(fc.T, w3, gamma)
 

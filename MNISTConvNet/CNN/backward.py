@@ -40,6 +40,33 @@ def convolutionBackward(dconv_prev, conv_in, filt, s):
     
     return dout, dfilt
 
+def convolutionBackwardBatch(dconv_prev, conv_in, filt, s):
+    '''
+    Backpropagation through a convolutional layer. 
+    '''
+    (n_f, n_c, f, _) = filt.shape
+    (batch_size, _, orig_dim, _) = conv_in.shape
+    ## initialize derivatives
+    dout = np.zeros(conv_in.shape) 
+    dfilt = np.zeros((batch_size,) + filt.shape)
+    for curr_b in range(batch_size):
+        for curr_f in range(n_f):
+            # loop through all filters
+            curr_y = out_y = 0
+            while curr_y + f <= orig_dim:
+                curr_x = out_x = 0
+                while curr_x + f <= orig_dim:
+                    # loss gradient of filter (used to update the filter)
+                    dfilt[curr_b, curr_f] += dconv_prev[curr_b, curr_f, out_y, out_x] * conv_in[curr_b, :, curr_y:curr_y+f, curr_x:curr_x+f]
+                    # loss gradient of the input to the convolution operation (conv1 in the case of this network)
+                    dout[curr_b, :, curr_y:curr_y+f, curr_x:curr_x+f] += dconv_prev[curr_b, curr_f, out_y, out_x] * filt[curr_f] 
+                    curr_x += s
+                    out_x += 1
+                curr_y += s
+                out_y += 1
+    
+    return dout, dfilt
+
 
 def convolutionLorentzBackward(dconv_prev, conv_in, filt, gamma, s):
     '''
@@ -64,64 +91,6 @@ def convolutionLorentzBackward(dconv_prev, conv_in, filt, gamma, s):
                 out_x += 1
             curr_y += s
             out_y += 1
-    
-    return dout, dfilt
-
-
-def convolutionLorentzBackwardBatch(dconv_prev, conv_in, filt, gamma, s):
-    '''
-    Backpropagation through a convolutional layer. 
-    '''
-    (n_f, n_c, f, _) = filt.shape
-    (batch_size, _, orig_dim, _) = conv_in.shape
-    ## initialize derivatives
-    dout = np.zeros(conv_in.shape) 
-    dfilt = np.zeros((batch_size,) + filt.shape)
-    for curr_b in range(batch_size):
-        for curr_f in range(n_f):
-            # loop through all filters
-            curr_y = out_y = 0
-            while curr_y + f <= orig_dim:
-                curr_x = out_x = 0
-                while curr_x + f <= orig_dim:
-                    # loss gradient of filter (used to update the filter)
-                    dl = lorentzDx(conv_in[:, curr_y:curr_y+f, curr_x:curr_x+f], filt[curr_f], gamma) 
-                    dfilt[curr_b, curr_f] += dconv_prev[curr_b, curr_f, out_y, out_x] * -dl
-                    # loss gradient of the input to the convolution operation (conv1 in the case of this network)
-                    dout[curr_b, :, curr_y:curr_y+f, curr_x:curr_x+f] += dconv_prev[curr_b, curr_f, out_y, out_x] * dl
-                    curr_x += s
-                    out_x += 1
-                curr_y += s
-                out_y += 1
-    
-    return dout, dfilt
-
-
-def convolutionLorentzBackwardBatch2(dconv_prev, conv_in, filt, nl_store, gamma, s=1):
-    '''
-    Backpropagation through a convolutional layer. 
-    '''
-    (n_f, n_c, f, _) = filt.shape
-    (batch_size, _, orig_dim, _) = conv_in.shape
-    ## initialize derivatives
-    dout = np.zeros(conv_in.shape) 
-    dfilt = np.zeros((batch_size,) + filt.shape)
-    for curr_b in range(batch_size):
-        for curr_f in range(n_f):
-            # loop through all filters
-            curr_y = out_y = 0
-            while curr_y + f <= orig_dim:
-                curr_x = out_x = 0
-                while curr_x + f <= orig_dim:
-                    # loss gradient of filter (used to update the filter)
-                    dl = lorentzDxWithBase(conv_in[curr_b, :, curr_y:curr_y+f, curr_x:curr_x+f], filt[curr_f], gamma, nl_store[curr_b, curr_f, curr_y, curr_x, :, :]) 
-                    dfilt[curr_b, curr_f] += dconv_prev[curr_b, curr_f, out_y, out_x] * -dl
-                    # loss gradient of the input to the convolution operation (conv1 in the case of this network)
-                    dout[curr_b, :, curr_y:curr_y+f, curr_x:curr_x+f] += dconv_prev[curr_b, curr_f, out_y, out_x] * dl
-                    curr_x += s
-                    out_x += 1
-                curr_y += s
-                out_y += 1
     
     return dout, dfilt
 

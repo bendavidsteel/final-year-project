@@ -5,7 +5,7 @@ Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
 '''
-from CNN.network_simple_dataset import *
+from CNN.network import *
 from CNN.utils import *
 
 from tqdm import tqdm
@@ -16,11 +16,11 @@ import pickle
 
 if __name__ == '__main__':
     
-    save_path = 'adamGD_SoftmaxCross_2overpiGamma_AlteredNet_SimpleDigits_NLdata'
+    save_path = 'adamGD_SoftmaxCross_2overpiGamma_NLdata'
     
     cost = train(save_path = save_path)
 
-    params, cost, layer_mean, layer_std, final_layer = pickle.load(open(save_path, 'rb'))
+    params, cost = pickle.load(open(save_path, 'rb'))
     [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5] = params
     
     # Plot cost 
@@ -35,8 +35,8 @@ if __name__ == '__main__':
     X = extract_data('t10k-images-idx3-ubyte.gz', m, 28)
     y_dash = extract_labels('t10k-labels-idx1-ubyte.gz', m).reshape(m,1)
     # Normalize the data
-    X-= int(np.mean(X)) # subtract mean
-    X/= int(np.std(X)) # divide by standard deviation
+    X -= np.mean(X) # subtract mean
+    X /= np.std(X) # divide by standard deviation
     test_data = np.hstack((X,y_dash))
     
     X = test_data[:,0:-1]

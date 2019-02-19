@@ -1,7 +1,7 @@
 ''' Author: Ben Steel '''
 
 
-from CNN.network_simple_dataset import *
+from CNN.full_network_batch_simple_dataset import *
 from CNN.utils import *
 
 from tqdm import tqdm
@@ -14,12 +14,12 @@ if __name__ == '__main__':
 
     gamma_error_curves = {}
 
-    for gamma in np.linspace(0.5, 0.8, 10):
+    for gamma in np.linspace(0.1, 1, 10):
         
         cost = train(save = False, gamma = gamma)
         gamma_error_curves[gamma] = cost
     
-    save_path = "gamma_error_curves_0.5t10t0.8_simpledataset"
+    save_path = "gamma_error_curves_0.1t10t1_simpledataset_full"
 
     with open(save_path, 'wb') as file:
         pickle.dump(gamma_error_curves, file)
