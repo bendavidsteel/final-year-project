@@ -298,7 +298,8 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, batch_size = 32, num_epochs = 1000, save_path = 'params.pkl'):
+def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, batch_size = 32, num_epochs = 10,
+ save_path = 'params.pkl', save = True, continue_training = False):
 
     # training data
     m = 50000
@@ -310,7 +311,7 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
     train_data = np.hstack((X,y_dash))
 
     # reduced dataset
-    train_data = train_data[:50]
+    train_data = train_data[:5000]
     
     np.random.shuffle(train_data)
 
@@ -322,26 +323,32 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
 
     full_layer_size = 128
 
-    ## Initializing all the parameters
-    f1, f2, f3 = (num_filt1, img_depth, f, f), (num_filt2, num_filt1, f, f), (num_filt3, num_filt2, pool_f, pool_f)
-    w4, w5 = (full_layer_size, flattened_size), (num_classes, full_layer_size)
+    if not continue_training:
+        ## Initializing all the parameters
+        f1, f2, f3 = (num_filt1, img_depth, f, f), (num_filt2, num_filt1, f, f), (num_filt3, num_filt2, pool_f, pool_f)
+        w4, w5 = (full_layer_size, flattened_size), (num_classes, full_layer_size)
 
-    f1 = initializeFilter(f1)
-    f2 = initializeFilter(f2)
-    f3 = initializeFilter(f3)
-    w4 = initializeWeight(w4)
-    w5 = initializeWeight(w5)
+        f1 = initializeFilter(f1)
+        f2 = initializeFilter(f2)
+        f3 = initializeFilter(f3)
+        w4 = initializeWeight(w4)
+        w5 = initializeWeight(w5)
 
-    b1, b2, b3 = (num_filt1, 1), (num_filt2, 1), (num_filt3, 1)
-    b4, b5 = (full_layer_size, 1), (num_classes, 1)
+        b1, b2, b3 = (num_filt1, 1), (num_filt2, 1), (num_filt3, 1)
+        b4, b5 = (full_layer_size, 1), (num_classes, 1)
 
-    b1 = initializeBias(b1)
-    b2 = initializeBias(b2)
-    b3 = initializeBias(b3)
-    b4 = initializeBias(b4)
-    b5 = initializeBias(b5)
+        b1 = initializeBias(b1)
+        b2 = initializeBias(b2)
+        b3 = initializeBias(b3)
+        b4 = initializeBias(b4)
+        b5 = initializeBias(b5)
 
-    params = [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5]
+        params = [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5]
+
+        cost = []
+
+    else:
+        params, cost = pickle.load(open(save_path, 'rb'))
 
     conv_s = 1
     pool_f = 2
@@ -350,7 +357,7 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
 
     config = [conv_s, pool_s, gamma]
 
-    cost = []
+    
 
     print("LR:"+str(lr)+", Batch Size:"+str(batch_size)+", Gamma:"+str(gamma))
 
@@ -366,11 +373,12 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 28,
 
 
     # final_layer = [nl1, nl2, nl3, nl4]
-            
-    to_save = [params, cost]
-    
-    with open(save_path, 'wb') as file:
-        pickle.dump(to_save, file)
+
+    if save:        
+        to_save = [params, cost]
+        
+        with open(save_path, 'wb') as file:
+            pickle.dump(to_save, file)
         
     return cost
         

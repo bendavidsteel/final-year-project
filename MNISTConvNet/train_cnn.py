@@ -18,7 +18,7 @@ if __name__ == '__main__':
     
     save_path = 'adamGD_SoftmaxCross_2overpiGamma_NLdata'
     
-    cost = train(save_path = save_path)
+    cost = train(save_path = save_path, continue_training=True)
 
     params, cost = pickle.load(open(save_path, 'rb'))
     [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5] = params

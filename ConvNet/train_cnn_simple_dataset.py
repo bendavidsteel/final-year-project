@@ -16,12 +16,12 @@ import pickle
 
 if __name__ == '__main__':
     
-    save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net128_4kernels_SimpleDigits_NLquartiledata'
+    save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net128_SimpleDigits_NLdeltadata'
     gamma = 2/np.pi
 
     cost = train(gamma = gamma, save_path = save_path)
 
-    params, cost, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95, final_layer = pickle.load(open(save_path, 'rb'))
+    params, cost, final_nl, final_d = pickle.load(open(save_path, 'rb'))
     [f1, f2, w3, w4, b1, b2, b3, b4] = params
     
     # Plot cost 

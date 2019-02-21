@@ -33,15 +33,21 @@ def conv(image, label, params, gamma):
     ################################################
     conv1 = convolutionBatch(image, f1) # convolution operation
     nonlin1 = lorentz(conv1, b1.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
+
+    nonlin1a = conv1 - b1.reshape(1,-1,1,1)
     
     conv2 = convolutionBatch(nonlin1, f2) # second convolution operation
     pooled = lorentz(conv2, b2.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
+
+    pooleda = conv2 - b2.reshape(1,-1,1,1)
     
     (batch_size, nf2, dim2, _) = pooled.shape
     fc = pooled.reshape((batch_size, nf2 * dim2 * dim2, 1)) # flatten pooled layer
     
     z1 = np.matmul(w3, fc)
     a1 = lorentz(z1, b3.reshape(1, -1, 1), gamma)
+
+    a1a = z1 - b3.reshape(1,-1,1)
 
     # z2 = np.matmul(w4, a1) # first dense layer
     # a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
@@ -117,7 +123,7 @@ def conv(image, label, params, gamma):
 
     grads = [df1, df2, dw3, dw4, db1, db2, db3, db4]
 
-    return grads, loss, nonlin1, pooled, a1
+    return grads, loss, nonlin1, nonlin1a, pooled, pooleda, a1, a1a
 
 #####################################################
 ################### Optimization ####################
@@ -179,7 +185,7 @@ def adamGD(batch, num_classes, lr, dim, n_c, beta1, beta2, params, cost, gamma):
     # grads, loss, nl1, nl2, nl3, nl4 = conv(x, y, params, gamma)
     # [df1, df2, dw3, dw4, dw5, db1, db2, db3, db4, db5] = grads
 
-    grads, loss, nl1, nl2, nl3 = conv(x, y, params, gamma)
+    grads, loss, nl1, d1, nl2, d2, nl3, d3 = conv(x, y, params, gamma)
     [df1, df2, dw3, dw4, db1, db2, db3, db4] = grads
 
     cost_ = loss
@@ -233,7 +239,7 @@ def adamGD(batch, num_classes, lr, dim, n_c, beta1, beta2, params, cost, gamma):
     params = [f1, f2, w3, w4, b1, b2, b3, b4]
     
     # return params, cost, nl1, nl2, nl3, nl4
-    return params, cost, nl1, nl2, nl3
+    return params, cost, nl1, d1, nl2, d2, nl3, d3
 
 
 def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
@@ -316,7 +322,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 8, img_depth = 1, f = 3, num_filt1 = 4, num_filt2 = 4, gamma = 2/np.pi, batch_size = 50, num_epochs = 1000, save_path = 'params.pkl', save = True):
+def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 8, img_depth = 1, f = 3, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, batch_size = 50, num_epochs = 1000, save_path = 'params.pkl', save = True):
 
     # training data
     X, y_dash = generateDataset()
@@ -376,23 +382,23 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 8, 
     # nl4_m = []
     # nl4_std = []
 
-    nl1_q5 = []
-    nl1_q25 = []
-    nl1_q50 = []
-    nl1_q75 = []
-    nl1_q95 = []
+    # nl1_q5 = []
+    # nl1_q25 = []
+    # nl1_q50 = []
+    # nl1_q75 = []
+    # nl1_q95 = []
 
-    nl2_q5 = []
-    nl2_q25 = []
-    nl2_q50 = []
-    nl2_q75 = []
-    nl2_q95 = []
+    # nl2_q5 = []
+    # nl2_q25 = []
+    # nl2_q50 = []
+    # nl2_q75 = []
+    # nl2_q95 = []
 
-    nl3_q5 = []
-    nl3_q25 = []
-    nl3_q50 = []
-    nl3_q75 = []
-    nl3_q95 = []
+    # nl3_q5 = []
+    # nl3_q25 = []
+    # nl3_q50 = []
+    # nl3_q75 = []
+    # nl3_q95 = []
 
     # nl4_q5 = []
     # nl4_q25 = []
@@ -410,7 +416,7 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 8, 
 
         for batch in batches:
             # params, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
-            params, cost, nl1, nl2, nl3 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
+            params, cost, nl1, d1, nl2, d2, nl3, d3 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
             t.set_description("Cost: %.2f" % (cost[-1]))
 
             # nl1_m.append(np.mean(nl1))
@@ -425,23 +431,23 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 8, 
             # nl4_m.append(np.mean(nl4))
             # nl4_std.append(np.std(nl4))
 
-            nl1_q5.append(np.percentile(nl1, 5))
-            nl1_q25.append(np.percentile(nl1, 25))
-            nl1_q50.append(np.percentile(nl1, 50))
-            nl1_q75.append(np.percentile(nl1, 75))
-            nl1_q95.append(np.percentile(nl1, 95))
+            # nl1_q5.append(np.percentile(nl1, 5))
+            # nl1_q25.append(np.percentile(nl1, 25))
+            # nl1_q50.append(np.percentile(nl1, 50))
+            # nl1_q75.append(np.percentile(nl1, 75))
+            # nl1_q95.append(np.percentile(nl1, 95))
 
-            nl2_q5.append(np.percentile(nl2, 5))
-            nl2_q25.append(np.percentile(nl2, 25))
-            nl2_q50.append(np.percentile(nl2, 50))
-            nl2_q75.append(np.percentile(nl2, 75))
-            nl2_q95.append(np.percentile(nl2, 95))
+            # nl2_q5.append(np.percentile(nl2, 5))
+            # nl2_q25.append(np.percentile(nl2, 25))
+            # nl2_q50.append(np.percentile(nl2, 50))
+            # nl2_q75.append(np.percentile(nl2, 75))
+            # nl2_q95.append(np.percentile(nl2, 95))
 
-            nl3_q5.append(np.percentile(nl3, 5))
-            nl3_q25.append(np.percentile(nl3, 25))
-            nl3_q50.append(np.percentile(nl3, 50))
-            nl3_q75.append(np.percentile(nl3, 75))
-            nl3_q95.append(np.percentile(nl3, 95))
+            # nl3_q5.append(np.percentile(nl3, 5))
+            # nl3_q25.append(np.percentile(nl3, 25))
+            # nl3_q50.append(np.percentile(nl3, 50))
+            # nl3_q75.append(np.percentile(nl3, 75))
+            # nl3_q95.append(np.percentile(nl3, 95))
 
             # nl4_q5.append(np.percentile(nl4, 5))
             # nl4_q25.append(np.percentile(nl4, 25))
@@ -449,16 +455,11 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 8, 
             # nl4_q75.append(np.percentile(nl4, 75))
             # nl4_q95.append(np.percentile(nl4, 95))
 
-    final_layer = [nl1, nl2, nl3]
-
-    layer_q5 = [nl1_q5, nl2_q5, nl3_q5]
-    layer_q25 = [nl1_q25, nl2_q25, nl3_q25]
-    layer_q50 = [nl1_q50, nl2_q50, nl3_q50]
-    layer_q75 = [nl1_q75, nl2_q75, nl3_q75]
-    layer_q95 = [nl1_q95, nl2_q95, nl3_q95]
+    final_nl = [nl1, nl2, nl3]
+    final_d = [d1, d2, d3]
 
     if save:    
-        to_save = [params, cost, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95, final_layer]
+        to_save = [params, cost, final_nl, final_d]
         
         with open(save_path, 'wb') as file:
             pickle.dump(to_save, file)

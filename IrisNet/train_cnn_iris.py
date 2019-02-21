@@ -19,7 +19,7 @@ if __name__ == '__main__':
     save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net128_SemeionDataset'
     gamma = 2/np.pi
 
-    cost = train(gamma = gamma, save_path = save_path, continue_training = True)
+    cost = train(gamma = gamma, save_path = save_path, continue_training = False)
 
     params, cost = pickle.load(open(save_path, 'rb'))
     [f1, f2, w3, w4, b1, b2, b3, b4] = params
