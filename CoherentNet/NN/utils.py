@@ -143,11 +143,12 @@ def initializeFilter(size, scale = 1.0):
 def initializeWeight(size):
     # scale by inverse square root of size of previous layer
     var = np.sqrt(6)/np.sqrt(size[0] + size[1])
-    return np.abs(np.random.uniform(low = -var, high = var, size = size))
+    return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
 def initializeBias(size):
-    var = np.sqrt(6)/np.sqrt(size[0])
-    return np.random.uniform(low = -var, high = var, size = size)
+	var = np.sqrt(6)/np.sqrt(size[0])
+	# return np.random.uniform(low = 0, high = var, size = size)
+	return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
 def nanargmax(arr):
     idx = np.nanargmax(arr)

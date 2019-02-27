@@ -8,6 +8,7 @@ Date: June 12th, 2018
 from CNN.forward import *
 import numpy as np
 import gzip
+import pickle
 
 #####################################################
 ################## Utility Methods ##################
@@ -41,7 +42,7 @@ def extract_semeion_digit_dataset():
 	'''
 	Extract semeion handwritten digit dataset
 	'''
-	with open('semeion.data', 'r') as f:
+	with open('semeion_shuffled.data', 'r') as f:
 
 		digits = []
 		labels = []
@@ -70,13 +71,46 @@ def extract_semeion_digit_dataset():
 def semeion_training_set():
 	digits, labels = extract_semeion_digit_dataset()
 	# slice indexing to make up for non-random distribution of digits
-	return np.concatenate((digits[1::5], digits[2::5], digits[3::5], digits[4::5])), np.concatenate((labels[1::5], labels[2::5], labels[3::5], labels[4::5]))
+	return np.concatenate((digits[::5], digits[1::5], digits[2::5])), np.concatenate((labels[::5], labels[1::5], labels[2::5]))
 
 def semeion_validation_set():
 	digits, labels = extract_semeion_digit_dataset()
 	# slice indexing to make up for non-random distribution of digits
 	# splitting 80/20
-	return digits[::5], labels[::5]
+	return digits[3::5], labels[3::5]
+
+def semeion_testing_set():
+	digits, labels = extract_semeion_digit_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return digits[4::5], labels[4::5]
+
+def extract_shapes_dataset():
+	'''
+	Extract shapes dataset
+	'''
+	save_path = "shapes14.pkl"
+
+	shapes, labels = pickle.load(open(save_path, 'rb'))
+
+	return shapes.reshape(-1, 14*14), labels.reshape(-1,1)
+
+def shapes_training_set():
+	shapes, labels = extract_shapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	return np.concatenate((shapes[::5], shapes[1::5], shapes[2::5])), np.concatenate((labels[::5], labels[1::5], labels[2::5]))
+
+def shapes_validation_set():
+	shapes, labels = extract_shapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return shapes[3::5], labels[3::5]
+
+def shapes_testing_set():
+	shapes, labels = extract_shapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return shapes[4::5], labels[4::5]
 
 def initializeFilter(size, scale = 1.0):
     stddev = scale/np.sqrt(np.prod(size))

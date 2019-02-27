@@ -5,7 +5,7 @@ Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
 '''
-from CNN.network_semeion import *
+from CNN.network_shapes import *
 from CNN.utils import *
 
 from tqdm import tqdm
@@ -16,7 +16,7 @@ import pickle
 
 if __name__ == '__main__':
     
-    save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net128_SemeionDataset'
+    save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net128_ShapesDataset'
     gamma = 2/np.pi
 
     cost = train(gamma = gamma, save_path = save_path, continue_training = False)
@@ -33,19 +33,19 @@ if __name__ == '__main__':
     plt.show()
 
     # Get test data
-    X, y_dash = semeion_testing_set()
+    X, y_dash = shapes_testing_set()
     # Normalize the data
     X -= np.mean(X) # subtract mean
     X /= np.std(X) # divide by standard deviation
     test_data = np.hstack((X,y_dash))
     
     X = test_data[:,0:-1]
-    X = X.reshape(len(test_data), 1, 16, 16)
+    X = X.reshape(len(test_data), 1, 14, 14)
     y = test_data[:,-1]
 
     corr = 0
-    digit_count = [0 for i in range(10)]
-    digit_correct = [0 for i in range(10)]
+    digit_count = [0 for i in range(3)]
+    digit_correct = [0 for i in range(3)]
    
     print()
     print("Computing accuracy over test set:")
@@ -65,9 +65,9 @@ if __name__ == '__main__':
         t.set_description("Acc:%0.2f%%" % (float(corr/(i+1))*100))
         
     print("Overall Accuracy: %.2f" % (float(corr/len(test_data)*100)))
-    x = np.arange(10)
+    x = ["Circles", "Squares", "Triangles"]
     digit_recall = [x/y for x,y in zip(digit_correct, digit_count)]
-    plt.xlabel('Digits')
+    plt.xlabel('Shapes')
     plt.ylabel('Recall')
     plt.title("Recall on Test Set")
     plt.bar(x,digit_recall)

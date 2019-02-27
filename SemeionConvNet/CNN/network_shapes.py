@@ -22,7 +22,7 @@ from tqdm import tqdm
 ############### Building The Network ################
 #####################################################
 
-def conv(image, label, params, gamma):
+def conv(image, label, params, gamma, validation = False):
     
     # [f1, f2, w3, w4, w5, b1, b2, b3, b4, b5] = params 
     [f1, f2, w3, w4, b1, b2, b3, b4] = params
@@ -56,6 +56,11 @@ def conv(image, label, params, gamma):
     ################################################
     
     loss = categoricalCrossEntropyBatch(probs, label) # categorical cross-entropy loss
+
+    loss = np.mean(loss)
+
+    if validation:
+        return loss
         
     ################################################
     ############# Backward Operation ###############
@@ -108,7 +113,7 @@ def conv(image, label, params, gamma):
     db4 = np.mean(db4, axis=0)
     # db5 = np.mean(db5, axis=0)
 
-    loss = np.mean(loss)
+    
 
     # grads = [df1, df2, dw3, dw4, dw5, db1, db2, db3, db4, db5] 
     
@@ -315,11 +320,11 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 10, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 16, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, batch_size = 64, num_epochs = 100,
+def train(num_classes = 3, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 14, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, batch_size = 64, num_epochs = 1000,
           save_path = 'params.pkl', save = True, continue_training = False):
 
     # training data
-    X, y_dash = semeion_training_set()
+    X, y_dash = shapes_training_set()
 
     X -= np.mean(X)
     X /= np.std(X)
@@ -327,8 +332,13 @@ def train(num_classes = 10, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 16
     
     np.random.shuffle(train_data)
 
-    num_filt3 = num_filt2
-    pool_f = 2
+    X_val, y_dash_val = shapes_validation_set()
+
+    X_val -= np.mean(X_val)
+    X_val /= np.std(X_val)
+    val_data = np.hstack((X_val,y_dash_val))
+    
+    np.random.shuffle(val_data)
 
     num_conv_layers = 2
     flattened_size = ((img_dim - num_conv_layers*(f - 1))**2) * num_filt2
@@ -363,9 +373,10 @@ def train(num_classes = 10, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 16
         params = [f1, f2, w3, w4, b1, b2, b3, b4]
 
         cost = []
+        cost_val = []
 
     else:
-        params, cost = pickle.load(open(save_path, 'rb'))
+        params, cost, cost_val = pickle.load(open(save_path, 'rb'))
 
     
     conv_s = 1
@@ -411,14 +422,48 @@ def train(num_classes = 10, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 16
 
     t = tqdm(range(num_epochs))
 
-    for epoch in enumerate(t):
+    # checking for early stopping
+    min_val = float('inf')
+    PATIENCE = 500
+    num_since_best = 0
+    num_epochs = 0
+
+    for epoch in t:
+
+        # calculate loss on validation set
+        np.random.shuffle(val_data)
+        val_batch = val_data[:batch_size]
+
+        X_val = val_batch[:,0:-1] # get batch inputs
+        x_val = X_val.reshape(-1, img_depth, img_dim, img_dim)
+
+        Y_val = val_batch[:,-1] # get batch labels
+        y_val = np.eye(num_classes)[Y_val.astype(int)].reshape(-1, num_classes, 1) # convert label to one-hot
+
+        c_val = conv(x_val, y_val, params, gamma, validation=True)
+
+        cost_val.append(c_val)
+
+        if c_val < min_val:
+            min_val = c_val
+            best_params = params
+            num_since_best = 0
+            num_epochs = epoch
+        else:
+            if num_since_best > PATIENCE:
+                print()
+                print("Early stopping due to non improvement of validation accuracy")
+                break
+            else:
+                num_since_best += 1
+
         np.random.shuffle(train_data)
         batches = [train_data[k:k + batch_size] for k in range(0, train_data.shape[0], batch_size)]
 
         for batch in batches:
             # params, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
             params, cost, nl1, nl2, nl3 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
-            t.set_description("Cost: %.2f" % (cost[-1]))
+            t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
 
             # nl1_m.append(np.mean(nl1))
             # nl1_std.append(np.std(nl1))
@@ -466,7 +511,7 @@ def train(num_classes = 10, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 16
 
     if save:    
         # to_save = [params, cost, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95, final_layer]
-        to_save = [params, cost]
+        to_save = [params, cost, cost_val]
         
         with open(save_path, 'wb') as file:
             pickle.dump(to_save, file)
