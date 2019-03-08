@@ -9,6 +9,7 @@ from NN.network import *
 from NN.utils import *
 
 from tqdm import tqdm
+from sklearn.metrics import confusion_matrix
 import argparse
 import matplotlib.pyplot as plt
 import pickle
@@ -21,7 +22,7 @@ if __name__ == '__main__':
     save_path = 'adamGD_SoftmaxCross_2overpiGamma_CoherentNet1616_heartDataset'
     gamma = 2 / np.pi
 
-    cost = train(gamma = gamma, save_path = save_path, continue_training = False)
+    #cost = train(gamma = gamma, save_path = save_path, continue_training = False)
 
     params, cost, cost_val, nl1, nl2 = pickle.load(open(save_path, 'rb'))
     [w1, w2, w3, b1, b2, b3] = params
@@ -45,8 +46,10 @@ if __name__ == '__main__':
     y = test_data[:,-1]
 
     corr = 0
-    iris_count = [0 for i in range(num_classes)]
-    iris_correct = [0 for i in range(num_classes)]
+    # iris_count = [0 for i in range(num_classes)]
+    # iris_correct = [0 for i in range(num_classes)]
+    test_actu = []
+    test_pred = []
    
     print()
     print("Computing accuracy over test set:")
@@ -58,18 +61,51 @@ if __name__ == '__main__':
     for i in t:
         x = X[i]
         pred, prob = predict(x, y, params, gamma)
-        iris_count[int(y[i])]+=1
+
+        test_actu.append(int(y[i]))
+        test_pred.append(pred)
+
+        # iris_count[int(y[i])]+=1
         if pred==y[i]:
             corr+=1
-            iris_correct[pred]+=1
+        #     iris_correct[pred]+=1
 
         t.set_description("Acc:%0.2f%%" % (float(corr/(i+1))*100))
         
     print("Overall Accuracy: %.2f" % (float(corr/len(test_data)*100)))
-    labels = ["No presence", "Presence"]
-    iris_recall = [x/y for x,y in zip(iris_correct, iris_count)]
-    plt.xlabel('Digits')
-    plt.ylabel('Recall')
-    plt.title("Recall on Test Set")
-    plt.bar(labels, iris_recall)
+    # labels = ["No presence", "Presence"]
+    # iris_recall = [x/y for x,y in zip(iris_correct, iris_count)]
+    # plt.xlabel('Digits')
+    # plt.ylabel('Recall')
+    # plt.title("Recall on Test Set")
+    # plt.bar(labels, iris_recall)
+    # plt.show()
+
+    conf_mat = confusion_matrix(test_actu, test_pred)
+
+    mat = conf_mat / conf_mat.astype(np.float).sum(axis=1)
+
+    fig, ax = plt.subplots()
+
+    ax.matshow(mat, cmap="gray_r") # imshow
+    ax.xaxis.set_ticks_position('bottom')
+
+    for i in range(num_classes):
+        for j in range(num_classes):
+            s = conf_mat[j,i]
+
+            if mat[j,i] > 0.5:
+                c = "white"
+            else:
+                c = "black"
+
+            ax.text(i, j, str(s), color=c, va='center', ha='center')
+
+    plt.title("Confusion Matrix")
+    plt.xticks((0,1), ("No Presence", "Presence"))
+    plt.yticks((0,1), ("No Presence", "Presence"))
+    #plt.tight_layout()
+    plt.ylabel("Actual")
+    plt.xlabel("Predicted")
+
     plt.show()

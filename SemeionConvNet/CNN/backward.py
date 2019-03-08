@@ -40,14 +40,15 @@ def convolutionBackward(dconv_prev, conv_in, filt, s=1):
     
     return dout, dfilt
 
-def convolutionBackwardBatch(dconv_prev, conv_in, filt, s=1):
+def convolutionBackwardBatch(dconv_prev, conv_in, filt, s=1, final=False):
     '''
     Backpropagation through a convolutional layer. 
     '''
     (n_f, n_c, f, _) = filt.shape
     (batch_size, _, orig_dim, _) = conv_in.shape
     ## initialize derivatives
-    dout = np.zeros(conv_in.shape) 
+    if not final:
+        dout = np.zeros(conv_in.shape) 
     dfilt = np.zeros((batch_size,) + filt.shape)
     for curr_b in range(batch_size):
         for curr_f in range(n_f):
@@ -59,13 +60,17 @@ def convolutionBackwardBatch(dconv_prev, conv_in, filt, s=1):
                     # loss gradient of filter (used to update the filter)
                     dfilt[curr_b, curr_f] += dconv_prev[curr_b, curr_f, out_y, out_x] * conv_in[curr_b, :, curr_y:curr_y+f, curr_x:curr_x+f]
                     # loss gradient of the input to the convolution operation (conv1 in the case of this network)
-                    dout[curr_b, :, curr_y:curr_y+f, curr_x:curr_x+f] += dconv_prev[curr_b, curr_f, out_y, out_x] * filt[curr_f] 
+                    if not final:
+                        dout[curr_b, :, curr_y:curr_y+f, curr_x:curr_x+f] += dconv_prev[curr_b, curr_f, out_y, out_x] * filt[curr_f] 
                     curr_x += s
                     out_x += 1
                 curr_y += s
                 out_y += 1
     
-    return dout, dfilt
+    if not final:
+        return dout, dfilt
+    else:
+        return dfilt
 
 
 def convolutionLorentzBackward(dconv_prev, conv_in, filt, gamma, s):

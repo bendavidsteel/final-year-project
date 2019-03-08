@@ -82,11 +82,11 @@ def network(batch, label, params, gamma, validation = False):
 
     outmeasured = dout * dmeasured
 
-    dw3 = outmeasured * np.transpose(a2, (0,2,1))
+    dw3 = outmeasured * np.transpose(a2, (0,2,1)).conj()
     # db3 = (dmeasured.real + dmeasured.imag) / 2
     db3 = dout
 
-    da2 = np.matmul(w3.T, outmeasured)
+    da2 = np.matmul(w3.conj().T, outmeasured)
 
     dz2 = lorentzDxWithBaseComplex(np.abs(z2), b2.reshape(1,-1,1), gamma[1], a2)
 
@@ -96,11 +96,11 @@ def network(batch, label, params, gamma, validation = False):
     az = da2 * dz2
     azabs = az * dabs2
 
-    dw2 = azabs * np.transpose(a1, (0,2,1))
+    dw2 = azabs * np.transpose(a1, (0,2,1)).conj()
     # db2 = ((da2 * -dz2).real + (da2 * -dz2).imag) / 2 # lorentzian derivative with respect to x0 is minus that of with respect to x
     db2 = -az
 
-    da1 = np.matmul(w2.T, azabs)
+    da1 = np.matmul(w2.conj().T, azabs)
 
     dz1 = lorentzDxWithBaseComplex(np.abs(z1), b1.reshape(1,-1,1), gamma[0], a1)
 
@@ -109,7 +109,7 @@ def network(batch, label, params, gamma, validation = False):
 
     az = da1 * dz1
 
-    dw1 = az * np.transpose(batch, (0,2,1))
+    dw1 = az * np.transpose(batch, (0,2,1)).conj()
     # db1 = ((da1 * -dz1).real + (da1 * -dz1).imag) / 2
     db1 = -az
     
@@ -325,7 +325,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 
 def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
           data_dim = 13, gamma = 2/np.pi, layers = [32,24], batch_size = 64, num_epochs = 10000,
-          save_path = 'params.pkl', save = True, continue_training = False):
+          save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
     X, y_dash = heart_training_set()
@@ -393,7 +393,10 @@ def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
 
     print("LR: "+str(lr)+", Batch Size: "+str(batch_size)+", Gamma: "+str(gamma))
 
-    t = tqdm(range(num_epochs))
+    if progress_bar:
+        t = tqdm(range(num_epochs))
+    else:
+        t = range(num_epochs)
 
     # checking for early stopping
     min_val = float('inf')
@@ -417,12 +420,12 @@ def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
             best_params = params
             num_since_best = 0
             num_epochs = epoch
-        # else:
-        #     if num_since_best > PATIENCE:
-        #         print("Early stopping due to non improvement of validation accuracy")
-        #         break
-        #     else:
-        #         num_since_best += 1
+        else:
+            if num_since_best > PATIENCE:
+                print("Early stopping due to non improvement of validation accuracy")
+                break
+            else:
+                num_since_best += 1
 
         cost_val.append(c_val)
 
@@ -432,7 +435,9 @@ def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
         for batch in batches:
             # params, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
             params, cost, nl1, nl2 = adamGD(batch, num_classes, lr, data_dim, beta1, beta2, params, cost, gamma)
-            t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
+
+            if progress_bar:
+                t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
 
             nl1_r5.append(np.percentile(np.abs(nl1), 5))
             nl1_r25.append(np.percentile(np.abs(nl1), 25))

@@ -16,8 +16,8 @@ import pickle
 
 if __name__ == '__main__':
     
-    save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net128_ShapesDataset'
-    gamma = 2/np.pi
+    save_path = 'adamGD_SoftmaxCross_2Gamma_Net128_ShapesDataset'
+    gamma = 2
 
     cost = train(gamma = gamma, save_path = save_path, continue_training = False)
 

@@ -86,21 +86,23 @@ def conv(image, label, params, gamma, validation = False):
 
     dl3 = lorentzDxWithBase(z1, b3.reshape(1, -1, 1), gamma, a1)
 
-    dw3 = da1 * dl3 * np.transpose(fc, (0,2,1))
-    db3 = da1 * -dl3 # lorentzian derivative with respect to x0 is minus that of with respect to x
+    dal = da1 * dl3
 
-    dfc = np.matmul(w3.T, da1 * dl3)
+    dw3 = dal * np.transpose(fc, (0,2,1))
+    db3 = -dal # lorentzian derivative with respect to x0 is minus that of with respect to x
+
+    dfc = np.matmul(w3.T, dal)
     dpool = dfc.reshape(pooled.shape) # reshape fully connected into dimensions of pooling layer
     
     dl2 = lorentzDxWithBase(conv2, b2.reshape(1, -1, 1, 1), gamma, pooled)
     dconv2 = dpool * dl2 # backpropagate through lorentzian
-    db2 = np.mean(dpool * -dl2, axis=(2,3)) # find grad for bias
+    db2 = np.mean(-dconv2, axis=(2,3)) # find grad for bias
     dnonlin1, df2 = convolutionBackwardBatch(dconv2, conv1, f2) # backpropagate previous gradient through second convolutional layer.
     
     dl1 = lorentzDxWithBase(conv1, b1.reshape(1, -1, 1, 1), gamma, nonlin1)
     dconv1 = dnonlin1 * dl1 # backpropagate through lorentzian
-    db1 = np.mean(dnonlin1 * -dl1, axis=(2,3)) # find grad for bias
-    dimage, df1 = convolutionBackwardBatch(dconv1, image, f1) # backpropagate previous gradient through first convolutional layer.
+    db1 = np.mean(-dconv1, axis=(2,3)) # find grad for bias
+    df1 = convolutionBackwardBatch(dconv1, image, f1, final=True) # backpropagate previous gradient through first convolutional layer.
     
     df1 = np.mean(df1, axis=0)
     df2 = np.mean(df2, axis=0)
