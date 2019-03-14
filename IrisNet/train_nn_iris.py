@@ -5,70 +5,69 @@ Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
 '''
-from CNN.network_semeion import *
-from CNN.utils import *
+from NN.network import *
+from NN.utils import *
 
 from tqdm import tqdm
 import argparse
 import matplotlib.pyplot as plt
-import json
+import pickle
 
 
 if __name__ == '__main__':
     
-    save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net128_SemeionDataset.json'
+    save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net1616_irisDataset'
     gamma = 2/np.pi
 
     cost = train(gamma = gamma, save_path = save_path, continue_training = False)
 
-    params, cost, cost_val = json.load(open(save_path, 'rb'))
-    [f1, f2, w3, w4, b1, b2, b3, b4] = params
+    params, cost, cost_val, num_epochs = pickle.load(open(save_path, 'rb'))
+    [w1, w2, w3, b1, b2, b3] = params
     
     # Plot cost 
     plt.plot(cost)
     plt.plot(np.linspace(0, len(cost), len(cost_val)), cost_val)
     plt.xlabel('# Iterations')
     plt.ylabel('Cost')
-    plt.legend('Loss', loc='upper right')
+    plt.legend(['Training Loss', 'Validation Loss'], loc='upper right')
     plt.show()
 
     # Get test data
-    X, y_dash = semeion_testing_set()
+    X, y_dash = heart_testing_set()
     # Normalize the data
-    X -= np.mean(X) # subtract mean
-    X /= np.std(X) # divide by standard deviation
-    test_data = np.hstack((X,y_dash))
+    test_data = norm_stack_shuffle(X,y_dash)
+
+    num_classes = 3
     
     X = test_data[:,0:-1]
-    X = X.reshape(len(test_data), 1, 16, 16)
     y = test_data[:,-1]
 
     corr = 0
-    digit_count = [0 for i in range(10)]
-    digit_correct = [0 for i in range(10)]
+    iris_count = [0 for i in range(num_classes)]
+    iris_correct = [0 for i in range(num_classes)]
    
     print()
     print("Computing accuracy over test set:")
 
     t = tqdm(range(len(X)), leave=True)
 
-    params = [f1, f2, w3, w4, b1, b2, b3, b4]
+    params = [w1, w2, w3, b1, b2, b3]
 
     for i in t:
         x = X[i]
         pred, prob = predict(x, y, params, gamma)
-        digit_count[int(y[i])]+=1
+        iris_count[int(y[i])]+=1
         if pred==y[i]:
             corr+=1
-            digit_correct[pred]+=1
+            iris_correct[pred]+=1
 
         t.set_description("Acc:%0.2f%%" % (float(corr/(i+1))*100))
         
     print("Overall Accuracy: %.2f" % (float(corr/len(test_data)*100)))
-    x = np.arange(10)
-    digit_recall = [x/y for x,y in zip(digit_correct, digit_count)]
+    labels = ["No presence", "Presence"]
+    iris_recall = [x/y for x,y in zip(iris_correct, iris_count)]
     plt.xlabel('Digits')
     plt.ylabel('Recall')
     plt.title("Recall on Test Set")
-    plt.bar(x,digit_recall)
+    plt.bar(labels, iris_recall)
     plt.show()

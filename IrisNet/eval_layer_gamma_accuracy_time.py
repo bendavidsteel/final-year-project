@@ -1,4 +1,4 @@
-from NN.network import *
+from NN.network_iris import *
 from NN.utils import *
 
 import matplotlib.pyplot as plt
@@ -7,7 +7,7 @@ import pickle
 
 if __name__ == '__main__':
 
-    eval_save_path = "layer_gamma_accuracy_1664_0.05_15_iris.pkl"
+    eval_save_path = "layer_gamma_accuracy_6416_0.05_15_iris.pkl"
 
     num_gammas = 20
 
@@ -15,15 +15,15 @@ if __name__ == '__main__':
 
     g_vals = np.linspace(0.05, 15, num_gammas)
 
-    # x_g = np.zeros((num_gammas**2,))
-    # y_g = np.zeros((num_gammas**2,))
+    x_g = np.zeros((num_gammas**2,))
+    y_g = np.zeros((num_gammas**2,))
     # # z_a = np.zeros((num_gammas**3,))
-    # g_a = np.zeros((num_gammas**2,))
-    # e_n = np.zeros((num_gammas**2,))
+    g_a = np.zeros((num_gammas**2,))
+    e_n = np.zeros((num_gammas**2,))
 
-    to_save = pickle.load(open(eval_save_path, 'rb')) 
+    # to_save = pickle.load(open(eval_save_path, 'rb')) 
 
-    [x_g, y_g, g_a, e_n] = to_save
+    # [x_g, y_g, g_a, e_n] = to_save
 
     for i in range(num_gammas):
         for j in range(num_gammas):
@@ -37,16 +37,18 @@ if __name__ == '__main__':
                 # save_path = 'layer_gamma_accuracy/_'+str(i)+'_'+str(j)+'_'+str(k)+'.pkl'
                 save_path = 'layer_gamma_accuracy/_'+str(i)+'_'+str(j)+'.pkl'
                 # cost = train(gamma = [g_vals[i], g_vals[j], g_vals[k]], layers = [32,32], save_path = save_path)
-                cost = train(gamma = [g_vals[i], g_vals[j]], layers = [16, 64], save_path = save_path, progress_bar=False)
+                cost = train(gamma = [g_vals[i], g_vals[j]], layers = [64, 16], save_path = save_path, progress_bar=False)
 
                 params, cost, cost_val, num_epochs = pickle.load(open(save_path, 'rb'))
 
                 # Get test data
-                X, y_dash = heart_testing_set()
+                X, y_dash = iris_testing_set()
+                # X, y_dash = heart_testing_set()
                 # Normalize the data
                 test_data = norm_stack_shuffle(X,y_dash)
 
-                num_classes = 2
+                num_classes = 3
+                # num_classes = 2
                 
                 X = test_data[:,0:-1]
                 y = test_data[:,-1]
@@ -74,7 +76,7 @@ if __name__ == '__main__':
                 # t.set_description("x: %.2f, y: %.2f, z: %.2f, n: %.2f" % (g_vals[i], g_vals[j], g_vals[k], n))
                 print("x: %.2f, y: %.2f, n: %.2f" % (g_vals[i], g_vals[j], n))
 
-    to_save = [x_g, y_g, g_a, e_n]
+        to_save = [x_g, y_g, g_a, e_n]
 
-    with open(eval_save_path, 'wb') as file:
-        pickle.dump(to_save, file)
+        with open(eval_save_path, 'wb') as file:
+            pickle.dump(to_save, file)

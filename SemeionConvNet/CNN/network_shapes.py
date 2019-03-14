@@ -16,7 +16,7 @@ from CNN.backward import *
 from CNN.utils import *
 
 import numpy as np
-import pickle
+import json
 from tqdm import tqdm
 #####################################################
 ############### Building The Network ################
@@ -322,8 +322,8 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 3, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 14, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, batch_size = 64, num_epochs = 1000,
-          save_path = 'params.pkl', save = True, continue_training = False):
+def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, batch_size = 64, num_epochs = 500,
+          save_path = 'params', save = True, continue_training = False, old_save='params'):
 
     # training data
     X, y_dash = shapes_training_set()
@@ -374,12 +374,11 @@ def train(num_classes = 3, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 14,
         # params = [f1, f2, w3, w4, w5, b1, b2, b3, b4, b5]
         params = [f1, f2, w3, w4, b1, b2, b3, b4]
 
-        cost = []
-        cost_val = []
-
     else:
-        params, cost, cost_val = pickle.load(open(save_path, 'rb'))
+        params, final_layer = pickle.load(open(old_save + '.pkl', 'rb'))
 
+    cost = []
+    cost_val = []
     
     conv_s = 1
 
@@ -396,23 +395,23 @@ def train(num_classes = 3, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 14,
     # nl4_m = []
     # nl4_std = []
 
-    # nl1_q5 = []
-    # nl1_q25 = []
-    # nl1_q50 = []
-    # nl1_q75 = []
-    # nl1_q95 = []
+    nl1_q5 = []
+    nl1_q25 = []
+    nl1_q50 = []
+    nl1_q75 = []
+    nl1_q95 = []
 
-    # nl2_q5 = []
-    # nl2_q25 = []
-    # nl2_q50 = []
-    # nl2_q75 = []
-    # nl2_q95 = []
+    nl2_q5 = []
+    nl2_q25 = []
+    nl2_q50 = []
+    nl2_q75 = []
+    nl2_q95 = []
 
-    # nl3_q5 = []
-    # nl3_q25 = []
-    # nl3_q50 = []
-    # nl3_q75 = []
-    # nl3_q95 = []
+    nl3_q5 = []
+    nl3_q25 = []
+    nl3_q50 = []
+    nl3_q75 = []
+    nl3_q95 = []
 
     # nl4_q5 = []
     # nl4_q25 = []
@@ -479,23 +478,23 @@ def train(num_classes = 3, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 14,
             # nl4_m.append(np.mean(nl4))
             # nl4_std.append(np.std(nl4))
 
-            # nl1_q5.append(np.percentile(nl1, 5))
-            # nl1_q25.append(np.percentile(nl1, 25))
-            # nl1_q50.append(np.percentile(nl1, 50))
-            # nl1_q75.append(np.percentile(nl1, 75))
-            # nl1_q95.append(np.percentile(nl1, 95))
+            nl1_q5.append(np.percentile(nl1, 5))
+            nl1_q25.append(np.percentile(nl1, 25))
+            nl1_q50.append(np.percentile(nl1, 50))
+            nl1_q75.append(np.percentile(nl1, 75))
+            nl1_q95.append(np.percentile(nl1, 95))
 
-            # nl2_q5.append(np.percentile(nl2, 5))
-            # nl2_q25.append(np.percentile(nl2, 25))
-            # nl2_q50.append(np.percentile(nl2, 50))
-            # nl2_q75.append(np.percentile(nl2, 75))
-            # nl2_q95.append(np.percentile(nl2, 95))
+            nl2_q5.append(np.percentile(nl2, 5))
+            nl2_q25.append(np.percentile(nl2, 25))
+            nl2_q50.append(np.percentile(nl2, 50))
+            nl2_q75.append(np.percentile(nl2, 75))
+            nl2_q95.append(np.percentile(nl2, 95))
 
-            # nl3_q5.append(np.percentile(nl3, 5))
-            # nl3_q25.append(np.percentile(nl3, 25))
-            # nl3_q50.append(np.percentile(nl3, 50))
-            # nl3_q75.append(np.percentile(nl3, 75))
-            # nl3_q95.append(np.percentile(nl3, 95))
+            nl3_q5.append(np.percentile(nl3, 5))
+            nl3_q25.append(np.percentile(nl3, 25))
+            nl3_q50.append(np.percentile(nl3, 50))
+            nl3_q75.append(np.percentile(nl3, 75))
+            nl3_q95.append(np.percentile(nl3, 95))
 
             # nl4_q5.append(np.percentile(nl4, 5))
             # nl4_q25.append(np.percentile(nl4, 25))
@@ -503,20 +502,24 @@ def train(num_classes = 3, lr = 0.001, beta1 = 0.95, beta2 = 0.99, img_dim = 14,
             # nl4_q75.append(np.percentile(nl4, 75))
             # nl4_q95.append(np.percentile(nl4, 95))
 
-    # final_layer = [nl1, nl2, nl3]
+    final_layer = [nl1, nl2, nl3]
 
-    # layer_q5 = [nl1_q5, nl2_q5, nl3_q5]
-    # layer_q25 = [nl1_q25, nl2_q25, nl3_q25]
-    # layer_q50 = [nl1_q50, nl2_q50, nl3_q50]
-    # layer_q75 = [nl1_q75, nl2_q75, nl3_q75]
-    # layer_q95 = [nl1_q95, nl2_q95, nl3_q95]
+    layer_q5 = [nl1_q5, nl2_q5, nl3_q5]
+    layer_q25 = [nl1_q25, nl2_q25, nl3_q25]
+    layer_q50 = [nl1_q50, nl2_q50, nl3_q50]
+    layer_q75 = [nl1_q75, nl2_q75, nl3_q75]
+    layer_q95 = [nl1_q95, nl2_q95, nl3_q95]
 
-    if save:    
-        # to_save = [params, cost, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95, final_layer]
-        to_save = [params, cost, cost_val]
+    if save:
+        to_save_pickle = [params, final_layer]
+        to_save_json = [cost, cost_val, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95]
+        # to_save = [params, cost, cost_val]
+
+        with open(save_path + '.pkl', 'wb') as file:
+            pickle.dump(to_save_pickle, file)
         
-        with open(save_path, 'wb') as file:
-            pickle.dump(to_save, file)
+        with open(save_path + '.json', 'w') as file:
+            json.dump(to_save_json, file)
         
     return cost
         

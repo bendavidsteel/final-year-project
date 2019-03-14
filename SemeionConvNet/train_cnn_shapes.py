@@ -11,17 +11,21 @@ from CNN.utils import *
 from tqdm import tqdm
 import argparse
 import matplotlib.pyplot as plt
-import pickle
+import json
 
 
 if __name__ == '__main__':
     
-    save_path = 'adamGD_SoftmaxCross_2Gamma_Net128_ShapesDataset'
+    new_save = 'adamGD_SoftmaxCross_2Gamma_Net128_NLData_ShapesDataset_0epochs_1'
+    old_save = 'adamGD_SoftmaxCross_2Gamma_Net128_NLData_ShapesDataset_1'
     gamma = 2
 
-    cost = train(gamma = gamma, save_path = save_path, continue_training = False)
+    # FIUX THIS
+    cost = train(gamma = gamma, save_path = new_save, continue_training = False, old_save = old_save)
 
-    params, cost, cost_val = pickle.load(open(save_path, 'rb'))
+    cost, cost_val, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95 = json.load(open(new_save + '.json', 'rb'))
+    params, final_layer = pickle.load(open(new_save + '.pkl', 'rb'))
+
     [f1, f2, w3, w4, b1, b2, b3, b4] = params
     
     # Plot cost 

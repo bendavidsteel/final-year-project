@@ -22,14 +22,15 @@ if __name__ == '__main__':
 
 	for i in range(num_gammas):
 		for j in range(num_gammas):
-			z[j,i] = e_n[i*num_gammas + j]
+			# z[j,i] = e_n[i*num_gammas + j]
+			z[j,i] = g_a[i*num_gammas + j]
 
 	axes[0,0].contourf(x, y, z, 20)
 	axes[0,0].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,0].set_ylabel(r'$\kappa$ for Second Layer')
 	axes[0,0].set_title("[16,16]")
 
-	eval_save_path = "layer_gamma_accuracy_1664_0.05_15.pkl"
+	eval_save_path = "layer_gamma_accuracy_1664_0.05_15_iris.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -42,7 +43,8 @@ if __name__ == '__main__':
 
 	for i in range(num_gammas):
 		for j in range(num_gammas):
-			z[j,i] = e_n[i*num_gammas + j]
+			# z[j,i] = e_n[i*num_gammas + j]
+			z[j,i] = g_a[i*num_gammas + j]
 
 	axes[0,1].contourf(x, y, z, 20)
 	axes[0,1].set_xlabel(r'$\kappa$ for First Layer')
@@ -62,7 +64,8 @@ if __name__ == '__main__':
 
 	for i in range(num_gammas):
 		for j in range(num_gammas):
-			z[j,i] = e_n[i*num_gammas + j]
+			# z[j,i] = e_n[i*num_gammas + j]
+			z[j,i] = g_a[i*num_gammas + j]
 
 	axes[1,0].contourf(x, y, z, 20)
 	axes[1,0].set_xlabel(r'$\kappa$ for First Layer')
@@ -82,7 +85,8 @@ if __name__ == '__main__':
 
 	for i in range(num_gammas):
 		for j in range(num_gammas):
-			z[j,i] = e_n[i*num_gammas + j]
+			# z[j,i] = e_n[i*num_gammas + j]
+			z[j,i] = g_a[i*num_gammas + j]
 
 	im = axes[1,1].contourf(x, y, z, 20)
 	axes[1,1].set_xlabel(r'$\kappa$ for First Layer')
@@ -92,7 +96,7 @@ if __name__ == '__main__':
 	plt.tight_layout()
 
 	cbar = fig.colorbar(im, ax=axes.ravel().tolist())
-	# cbar.set_label("Num Epochs to Best Performance")
-	cbar.set_label("Epochs to Best Performance")
+	cbar.set_label("Accuracy")
+	# cbar.set_label("Epochs to Best Performance")
 
 	plt.show()

@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     iters = 20
 
-    gammas = np.linspace(0.1, 3, 5)
+    gammas = np.linspace(0.1, 5, 5)
 
     for gamma in gammas:
 
