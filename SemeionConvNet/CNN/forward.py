@@ -183,3 +183,24 @@ def lorentzDxWithBase(x, x0, gamma, lx):
     return -4*(x - x0)*(np.pi/gamma)*np.square(lx)
 
 
+def nonlin(x, x0, gamma):
+    # lorentz function
+    return (0.5*gamma*x)/(np.square(x - x0) + np.square(0.5*gamma))
+
+def nonlinDx(x, x0, gamma):
+    # derivative of lorentz function with respect to x
+    return (2* gamma * (gamma**2 - 4 * (x**2 - x0**2))) / np.square(4*np.square(x - x0) + np.square(gamma))
+
+def nonlinDx0(x, x0, gamma):
+    # derivative of lorentz function with respect to x0
+    return (x * (x - x0) * gamma) / np.square(4*np.square(x - x0) + np.square(gamma))
+
+def nonlinDxWithBase(x, x0, gamma, lx):
+    # derivative of lorentz function with respect to x
+    return 0.5 * gamma * ((lx/x)**2 - (lx/(0.5*gamma))**2 + ((x0*lx/(0.5*gamma*x))**2))
+
+def nonlinDx0WithBase(x, x0, gamma, lx):
+    return ((lx/(0.5*gamma*x))**2)*gamma*x*(x - x0)
+
+
+

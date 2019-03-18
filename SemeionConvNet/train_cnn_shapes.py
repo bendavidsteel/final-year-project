@@ -16,8 +16,8 @@ import json
 
 if __name__ == '__main__':
     
-    new_save = 'adamGD_SoftmaxCross_2Gamma_Net128_NLData_ShapesDataset_0epochs_1'
-    old_save = 'adamGD_SoftmaxCross_2Gamma_Net128_NLData_ShapesDataset_1'
+    new_save = 'adamGD_SoftmaxCross_2Gamma_Net128_NLData_ShapesDataset_0epochs_filter3_1'
+    old_save = 'adamGD_SoftmaxCross_2Gamma_Net128_NLData_ShapesDataset_0epochs_filter3_1'
     gamma = 2
 
     # FIUX THIS

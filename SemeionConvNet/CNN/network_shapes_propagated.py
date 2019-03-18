@@ -31,16 +31,16 @@ def conv(image, label, params, gamma, validation = False):
     ############## Forward Operation ###############
     ################################################
     conv1 = convolutionBatch(image, f1) # convolution operation
-    nonlin1 = lorentz(conv1, b1.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
+    nonlin1 = nonlin(conv1, b1.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
     
     conv2 = convolutionBatch(nonlin1, f2) # second convolution operation
-    pooled = lorentz(conv2, b2.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
+    pooled = nonlin(conv2, b2.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
     
     (batch_size, nf2, dim2, _) = pooled.shape
     fc = pooled.reshape((batch_size, nf2 * dim2 * dim2, 1)) # flatten pooled layer
     
     z1 = np.matmul(w3, fc)
-    a1 = lorentz(z1, b3.reshape(1, -1, 1), gamma)
+    a1 = nonlin(z1, b3.reshape(1, -1, 1), gamma)
 
     # z2 = np.matmul(w4, a1) # first dense layer
     # a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
@@ -84,24 +84,35 @@ def conv(image, label, params, gamma, validation = False):
 
     da1 = np.matmul(w4.T, dout)
 
-    dl3 = lorentzDxWithBase(z1, b3.reshape(1, -1, 1), gamma, a1)
+    # dl3 = nonlinDxWithBase(z1, b3.reshape(1, -1, 1), gamma, a1)
+    # dl03 = nonlinDx0WithBase(z1, b3.reshape(1, -1, 1), gamma, a1)
+    dl3 = nonlinDx(z1, b3.reshape(1, -1, 1), gamma)
+    dl03 = nonlinDx0(z1, b3.reshape(1, -1, 1), gamma)
 
     dal = da1 * dl3
 
     dw3 = dal * np.transpose(fc, (0,2,1))
-    db3 = -dal # lorentzian derivative with respect to x0 is minus that of with respect to x
+    db3 = da1 * dl03 # lorentzian derivative with respect to x0 is minus that of with respect to x
 
     dfc = np.matmul(w3.T, dal)
     dpool = dfc.reshape(pooled.shape) # reshape fully connected into dimensions of pooling layer
     
-    dl2 = lorentzDxWithBase(conv2, b2.reshape(1, -1, 1, 1), gamma, pooled)
+    # dl2 = nonlinDxWithBase(conv2, b2.reshape(1, -1, 1, 1), gamma, pooled)
+    # dl02 = nonlinDx0WithBase(conv2, b2.reshape(1, -1, 1, 1), gamma, pooled)
+    dl2 = nonlinDx(conv2, b2.reshape(1, -1, 1, 1), gamma)
+    dl02 = nonlinDx0(conv2, b2.reshape(1, -1, 1, 1), gamma)
+
     dconv2 = dpool * dl2 # backpropagate through lorentzian
-    db2 = np.mean(-dconv2, axis=(2,3)) # find grad for bias
+    db2 = np.mean(dpool * dl02, axis=(2,3)) # find grad for bias
     dnonlin1, df2 = convolutionBackwardBatch(dconv2, conv1, f2) # backpropagate previous gradient through second convolutional layer.
     
-    dl1 = lorentzDxWithBase(conv1, b1.reshape(1, -1, 1, 1), gamma, nonlin1)
+    # dl1 = nonlinDxWithBase(conv1, b1.reshape(1, -1, 1, 1), gamma, nonlin1)
+    # dl01 = nonlinDx0WithBase(conv1, b1.reshape(1, -1, 1, 1), gamma, nonlin1)
+    dl1 = nonlinDx(conv1, b1.reshape(1, -1, 1, 1), gamma)
+    dl01 = nonlinDx0(conv1, b1.reshape(1, -1, 1, 1), gamma)
+
     dconv1 = dnonlin1 * dl1 # backpropagate through lorentzian
-    db1 = np.mean(-dconv1, axis=(2,3)) # find grad for bias
+    db1 = np.mean(dnonlin1 * dl01, axis=(2,3)) # find grad for bias
     df1 = convolutionBackwardBatch(dconv1, image, f1, final=True) # backpropagate previous gradient through first convolutional layer.
     
     df1 = np.mean(df1, axis=0)
@@ -322,7 +333,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, img_depth = 1, f = 3, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, batch_size = 64, num_epochs = 500,
+def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, img_depth = 1, f = 5, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, batch_size = 64, num_epochs = 100,
           save_path = 'params', save = True, continue_training = False, old_save='params'):
 
     # training data

@@ -72,13 +72,19 @@ def extract_iris_dataset():
 def iris_training_set():
 	stats, labels = extract_iris_dataset()
 	# slice indexing to make up for non-random distribution of digits
-	return np.concatenate((stats[1::5], stats[2::5], stats[3::5], stats[4::5])), np.concatenate((labels[1::5], labels[2::5], labels[3::5], labels[4::5]))
+	return np.concatenate((stats[::5], stats[1::5], stats[2::5])), np.concatenate((labels[::5], labels[1::5], labels[2::5]))
 
 def iris_validation_set():
 	stats, labels = extract_iris_dataset()
 	# slice indexing to make up for non-random distribution of digits
 	# splitting 80/20
-	return stats[::5], labels[::5]
+	return stats[3::5], labels[3::5]
+
+def iris_testing_set():
+	stats, labels = extract_iris_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return stats[4::5], labels[4::5]
 
 def initializeFilter(size, scale = 1.0):
     stddev = scale/np.sqrt(np.prod(size))
@@ -99,23 +105,35 @@ def nanargmax(arr):
     return idxs    
 
 def predict(data, label, params, gamma):
-    '''
-    Make predictions with trained filters/weights. 
-    '''
-    [w1, w2, w3] = params
+	'''
+	Make predictions with trained filters/weights. 
+	'''
+	[w1, w2, w3] = params
 
-    a1 = lorentz(data.T, w1, gamma)
-    z1 = np.sum(a1, axis=1).reshape((-1,1))
+	if type(gamma) is not list:
+		gamma = [gamma, gamma]
 
-    a2 = lorentz(z1.T, w2, gamma)
-    z2 = np.sum(a2, axis=1).reshape((-1,1))
-    
-    a3 = lorentz(z2.T, w3, gamma)
-    out = np.sum(a3, axis=1).reshape((-1,1))
+	a1 = lorentz(data.T, w1, gamma[0])
+	z1 = np.sum(a1, axis=1).reshape((-1,1))
 
-    out /= np.sum(out)
-    
-    # not using softmax as exponential cannot be implemented in optics
-    
-    return np.argmax(out), np.max(out)
-    
+	a2 = lorentz(z1.T, w2, gamma[1])
+	z2 = np.sum(a2, axis=1).reshape((-1,1))
+
+	a3 = lorentz(z2.T, w3, 1)
+	out = np.sum(a3, axis=1).reshape((-1,1))
+
+	out /= np.sum(out)
+
+	# not using softmax as exponential cannot be implemented in optics
+
+	return np.argmax(out), np.max(out)
+
+
+def norm_stack_shuffle(x, y_dash):
+	x -= np.mean(x, axis=0)
+	x /= np.std(x, axis=0)
+	data = np.hstack((x,y_dash))
+	
+	np.random.shuffle(data)
+
+	return data

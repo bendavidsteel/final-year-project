@@ -5,7 +5,7 @@ Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
 '''
-from NN.network import *
+from NN.network_heart import *
 from NN.utils import *
 
 from tqdm import tqdm
@@ -17,9 +17,9 @@ import pickle
 if __name__ == '__main__':
     
     save_path = 'adamGD_SoftmaxCross_2overpiGamma_Net1616_heartDataset'
-    gamma = 2/np.pi
+    gamma = 8
 
-    cost = train(gamma = gamma, save_path = save_path, continue_training = False)
+    cost = train(gamma = [10,3], layers=[16,64], save_path = save_path, continue_training = False, lr=0.05, num_epochs=5000)
 
     params, cost, cost_val, num_epochs = pickle.load(open(save_path, 'rb'))
     [w1, w2, w3, b1, b2, b3] = params

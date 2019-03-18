@@ -33,10 +33,10 @@ def network(batch, label, params, gamma, validation = False):
     ############## Forward Operation ###############
     ################################################
     z1 = np.matmul(w1, batch) # convolution operation
-    a1 = lorentzComplex(np.abs(z1), b1.reshape(1,-1,1), gamma[0]) # pass through Lorentzian non-linearity
+    a1 = z1 * lorentzComplex(np.abs(z1), np.abs(b1.reshape(1,-1,1)), gamma[0]) # pass through Lorentzian non-linearity
     
     z2 = np.matmul(w2, a1) # second convolution operation
-    a2 = lorentzComplex(np.abs(z2), b2.reshape(1,-1,1), gamma[1]) # pass through Lorentzian non-linearity
+    a2 = z2 * lorentzComplex(np.abs(z2), np.abs(b2.reshape(1,-1,1)), gamma[1]) # pass through Lorentzian non-linearity
 
     # z2 = np.matmul(w4, a1) # first dense layer
     # a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
@@ -88,7 +88,7 @@ def network(batch, label, params, gamma, validation = False):
 
     da2 = np.matmul(w3.conj().T, outmeasured)
 
-    dz2 = lorentzDxWithBaseComplex(np.abs(z2), b2.reshape(1,-1,1), gamma[1], a2)
+    dz2 = lorentzDxWithBaseComplex(np.abs(z2), np.abs(b2.reshape(1,-1,1)), gamma[1], a2)
 
     z2[z2 == 0] = 0.00001 + 0j
     dabs2 = z2 / np.abs(z2)
@@ -98,20 +98,29 @@ def network(batch, label, params, gamma, validation = False):
 
     dw2 = azabs * np.transpose(a1, (0,2,1)).conj()
     # db2 = ((da2 * -dz2).real + (da2 * -dz2).imag) / 2 # lorentzian derivative with respect to x0 is minus that of with respect to x
-    db2 = -az
+    
+    b2[b2 == 0] = 0.00001 + 0j
+    dabs2 = b2 / np.abs(b2)
+    
+    db2 = -az * dabs2
 
     da1 = np.matmul(w2.conj().T, azabs)
 
-    dz1 = lorentzDxWithBaseComplex(np.abs(z1), b1.reshape(1,-1,1), gamma[0], a1)
+    dz1 = lorentzDxWithBaseComplex(np.abs(z1), np.abs(b1.reshape(1,-1,1)), gamma[0], a1)
 
-    # z1[z1 == 0] = 0.00001 + 0j
-    # dabs1 = z1 / np.abs(z1)
+    z1[z1 == 0] = 0.00001 + 0j
+    dabs1 = z1 / np.abs(z1)
 
     az = da1 * dz1
+    azabs = az * dabs1
 
-    dw1 = az * np.transpose(batch, (0,2,1)).conj()
+    dw1 = azabs * np.transpose(batch, (0,2,1)).conj()
     # db1 = ((da1 * -dz1).real + (da1 * -dz1).imag) / 2
-    db1 = -az
+
+    b1[b1 == 0] = 0.00001 + 0j
+    dabs1 = b1 / np.abs(b1)
+
+    db1 = -az * dabs1
     
     dw1 = np.mean(dw1, axis=0)
     dw2 = np.mean(dw2, axis=0)
@@ -463,7 +472,7 @@ def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
             nl2_t75.append(np.percentile(np.angle(nl2), 75))
             nl2_t95.append(np.percentile(np.angle(nl2), 95))
 
-    # final_layer = [nl1, nl2]
+    final_layer = [nl1, nl2]
 
     # layer_q5 = [nl1_q5, nl2_q5]
     # layer_q25 = [nl1_q25, nl2_q25]
