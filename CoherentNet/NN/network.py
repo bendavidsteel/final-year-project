@@ -16,6 +16,7 @@ from NN.utils import *
 
 import numpy as np
 import pickle
+import copy
 from tqdm import tqdm
 #####################################################
 ############### Building The Network ################
@@ -33,10 +34,10 @@ def network(batch, label, params, gamma, validation = False):
     ############## Forward Operation ###############
     ################################################
     z1 = np.matmul(w1, batch) # convolution operation
-    a1 = z1 * lorentzComplex(np.abs(z1), np.abs(b1.reshape(1,-1,1)), gamma[0]) # pass through Lorentzian non-linearity
+    a1 = nonlinComplex(z1, b1.reshape(1,-1,1), gamma[0]) # pass through Lorentzian non-linearity
     
     z2 = np.matmul(w2, a1) # second convolution operation
-    a2 = z2 * lorentzComplex(np.abs(z2), np.abs(b2.reshape(1,-1,1)), gamma[1]) # pass through Lorentzian non-linearity
+    a2 = nonlinComplex(z2, b2.reshape(1,-1,1), gamma[1]) # pass through Lorentzian non-linearity
 
     # z2 = np.matmul(w4, a1) # first dense layer
     # a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
@@ -83,44 +84,21 @@ def network(batch, label, params, gamma, validation = False):
     outmeasured = dout * dmeasured
 
     dw3 = outmeasured * np.transpose(a2, (0,2,1)).conj()
-    # db3 = (dmeasured.real + dmeasured.imag) / 2
     db3 = dout
 
     da2 = np.matmul(w3.conj().T, outmeasured)
 
-    dz2 = lorentzDxWithBaseComplex(np.abs(z2), np.abs(b2.reshape(1,-1,1)), gamma[1], a2)
+    az = da2 * nonlinComplexDxConj(z2, b2.reshape(1,-1,1), gamma[1])
 
-    z2[z2 == 0] = 0.00001 + 0j
-    dabs2 = z2 / np.abs(z2)
+    dw2 = az * np.transpose(a1, (0,2,1)).conj()
+    db2 = da2 * nonlinComplexDx0Conj(z2, b2.reshape(1,-1,1), gamma[1])
 
-    az = da2 * dz2
-    azabs = az * dabs2
+    da1 = np.matmul(w2.conj().T, az)
 
-    dw2 = azabs * np.transpose(a1, (0,2,1)).conj()
-    # db2 = ((da2 * -dz2).real + (da2 * -dz2).imag) / 2 # lorentzian derivative with respect to x0 is minus that of with respect to x
-    
-    b2[b2 == 0] = 0.00001 + 0j
-    dabs2 = b2 / np.abs(b2)
-    
-    db2 = -az * dabs2
+    az = da1 * nonlinComplexDxConj(z1, b1.reshape(1,-1,1), gamma[0])
 
-    da1 = np.matmul(w2.conj().T, azabs)
-
-    dz1 = lorentzDxWithBaseComplex(np.abs(z1), np.abs(b1.reshape(1,-1,1)), gamma[0], a1)
-
-    z1[z1 == 0] = 0.00001 + 0j
-    dabs1 = z1 / np.abs(z1)
-
-    az = da1 * dz1
-    azabs = az * dabs1
-
-    dw1 = azabs * np.transpose(batch, (0,2,1)).conj()
-    # db1 = ((da1 * -dz1).real + (da1 * -dz1).imag) / 2
-
-    b1[b1 == 0] = 0.00001 + 0j
-    dabs1 = b1 / np.abs(b1)
-
-    db1 = -az * dabs1
+    dw1 = az * np.transpose(batch, (0,2,1)).conj()
+    db1 = da1 * nonlinComplexDx0Conj(z1, b1.reshape(1,-1,1), gamma[0])
     
     dw1 = np.mean(dw1, axis=0)
     dw2 = np.mean(dw2, axis=0)
@@ -332,8 +310,8 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
-          data_dim = 13, gamma = 2/np.pi, layers = [32,24], batch_size = 64, num_epochs = 10000,
+def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
+          data_dim = 13, gamma = 2/np.pi, layers = [32,32], batch_size = 64, num_epochs = 5000,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
@@ -388,17 +366,17 @@ def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
     nl2_r75 = []
     nl2_r95 = []
 
-    nl1_t5 = []
-    nl1_t25 = []
-    nl1_t50 = []
-    nl1_t75 = []
-    nl1_t95 = []
+    nl1_i5 = []
+    nl1_i25 = []
+    nl1_i50 = []
+    nl1_i75 = []
+    nl1_i95 = []
 
-    nl2_t5 = []
-    nl2_t25 = []
-    nl2_t50 = []
-    nl2_t75 = []
-    nl2_t95 = []
+    nl2_i5 = []
+    nl2_i25 = []
+    nl2_i50 = []
+    nl2_i75 = []
+    nl2_i95 = []
 
     print("LR: "+str(lr)+", Batch Size: "+str(batch_size)+", Gamma: "+str(gamma))
 
@@ -426,7 +404,7 @@ def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
 
         if c_val < min_val:
             min_val = c_val
-            best_params = params
+            best_params = copy.deepcopy(params)
             num_since_best = 0
             num_epochs = epoch
         else:
@@ -448,29 +426,29 @@ def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
             if progress_bar:
                 t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
 
-            nl1_r5.append(np.percentile(np.abs(nl1), 5))
-            nl1_r25.append(np.percentile(np.abs(nl1), 25))
-            nl1_r50.append(np.percentile(np.abs(nl1), 50))
-            nl1_r75.append(np.percentile(np.abs(nl1), 75))
-            nl1_r95.append(np.percentile(np.abs(nl1), 95))
+            nl1_r5.append(np.percentile(nl1.real, 5))
+            nl1_r25.append(np.percentile(nl1.real, 25))
+            nl1_r50.append(np.percentile(nl1.real, 50))
+            nl1_r75.append(np.percentile(nl1.real, 75))
+            nl1_r95.append(np.percentile(nl1.real, 95))
 
-            nl2_r5.append(np.percentile(np.abs(nl2), 5))
-            nl2_r25.append(np.percentile(np.abs(nl2), 25))
-            nl2_r50.append(np.percentile(np.abs(nl2), 50))
-            nl2_r75.append(np.percentile(np.abs(nl2), 75))
-            nl2_r95.append(np.percentile(np.abs(nl2), 95))
+            nl2_r5.append(np.percentile(nl2.real, 5))
+            nl2_r25.append(np.percentile(nl2.real, 25))
+            nl2_r50.append(np.percentile(nl2.real, 50))
+            nl2_r75.append(np.percentile(nl2.real, 75))
+            nl2_r95.append(np.percentile(nl2.real, 95))
 
-            nl1_t5.append(np.percentile(np.angle(nl1), 5))
-            nl1_t25.append(np.percentile(np.angle(nl1), 25))
-            nl1_t50.append(np.percentile(np.angle(nl1), 50))
-            nl1_t75.append(np.percentile(np.angle(nl1), 75))
-            nl1_t95.append(np.percentile(np.angle(nl1), 95))
+            nl1_i5.append(np.percentile(nl1.imag, 5))
+            nl1_i25.append(np.percentile(nl1.imag, 25))
+            nl1_i50.append(np.percentile(nl1.imag, 50))
+            nl1_i75.append(np.percentile(nl1.imag, 75))
+            nl1_i95.append(np.percentile(nl1.imag, 95))
 
-            nl2_t5.append(np.percentile(np.angle(nl2), 5))
-            nl2_t25.append(np.percentile(np.angle(nl2), 25))
-            nl2_t50.append(np.percentile(np.angle(nl2), 50))
-            nl2_t75.append(np.percentile(np.angle(nl2), 75))
-            nl2_t95.append(np.percentile(np.angle(nl2), 95))
+            nl2_i5.append(np.percentile(nl2.imag, 5))
+            nl2_i25.append(np.percentile(nl2.imag, 25))
+            nl2_i50.append(np.percentile(nl2.imag, 50))
+            nl2_i75.append(np.percentile(nl2.imag, 75))
+            nl2_i95.append(np.percentile(nl2.imag, 95))
 
     final_layer = [nl1, nl2]
 
@@ -480,12 +458,12 @@ def train(num_classes = 2, lr = 0.001, beta1 = 0.95, beta2 = 0.99,
     # layer_q75 = [nl1_q75, nl2_q75]
     # layer_q95 = [nl1_q95, nl2_q95]
 
-    nl1 = [nl1_r5, nl1_r25, nl1_r50, nl1_r75, nl1_r95, nl1_t5, nl1_t25, nl1_t50, nl1_t75, nl1_t95]
-    nl2 = [nl2_r5, nl2_r25, nl2_r50, nl2_r75, nl2_r95, nl2_t5, nl2_t25, nl2_t50, nl2_t75, nl2_t95]
+    nl1_p = [nl1_r5, nl1_r25, nl1_r50, nl1_r75, nl1_r95, nl1_i5, nl1_i25, nl1_i50, nl1_i75, nl1_i95]
+    nl2_p = [nl2_r5, nl2_r25, nl2_r50, nl2_r75, nl2_r95, nl2_i5, nl2_i25, nl2_i50, nl2_i75, nl2_i95]
 
     if save:    
         # to_save = [params, cost, cost_val, nl1_l, nl2_l]
-        to_save = [best_params, cost, cost_val, nl1, nl2]
+        to_save = [best_params, cost, cost_val, nl1_p, nl2_p, final_layer]
         
         with open(save_path, 'wb') as file:
             pickle.dump(to_save, file)

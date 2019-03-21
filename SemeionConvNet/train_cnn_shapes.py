@@ -16,12 +16,12 @@ import json
 
 if __name__ == '__main__':
     
-    new_save = 'adamGD_SoftmaxCross_2Gamma_Net128_NLData_ShapesDataset_0epochs_filter3_1'
-    old_save = 'adamGD_SoftmaxCross_2Gamma_Net128_NLData_ShapesDataset_0epochs_filter3_1'
-    gamma = 2
+    new_save = 'adamGD_SoftmaxCross_4Gamma_bias10b_Net128_NLData_ShapesDataset_500epochs_filter7_0'
+    old_save = 'adamGD_SoftmaxCross_4Gamma_bias10b_Net128_NLData_ShapesDataset_0epochs_filter7_0'
+    gamma = 4
 
     # FIUX THIS
-    cost = train(gamma = gamma, save_path = new_save, continue_training = False, old_save = old_save)
+    cost = train(gamma = gamma, save_path = new_save, continue_training = True, old_save = old_save)
 
     cost, cost_val, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95 = json.load(open(new_save + '.json', 'rb'))
     params, final_layer = pickle.load(open(new_save + '.pkl', 'rb'))

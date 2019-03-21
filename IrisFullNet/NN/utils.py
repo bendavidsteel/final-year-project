@@ -86,6 +86,56 @@ def iris_testing_set():
 	# splitting 80/20
 	return stats[4::5], labels[4::5]
 
+def extract_heart_dataset():
+	'''
+	Extract heart dataset
+	'''
+	with open('heart_shuffled.csv', 'r') as f:
+
+		stats = []
+		labels = []
+
+		first = True
+
+		for line in f:
+
+			if first:
+				first_line = line
+				first = False
+				continue
+
+			data = line.split(',')
+
+			stat_str = data[:13]
+			label_str = data[13]
+			
+			stat = np.asarray([float(x) for x in stat_str])
+
+			stats.append(stat)
+			
+			label = float(label_str)
+
+			labels.append(label)
+
+	return np.asarray(stats), np.asarray(labels).reshape((-1,1))
+
+def heart_training_set():
+	stats, labels = extract_heart_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	return np.concatenate((stats[::5], stats[1::5], stats[2::5])), np.concatenate((labels[::5], labels[1::5], labels[2::5]))
+
+def heart_validation_set():
+	stats, labels = extract_heart_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return stats[3::5], labels[3::5]
+
+def heart_testing_set():
+	stats, labels = extract_heart_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return stats[4::5], labels[4::5]
+
 def initializeFilter(size, scale = 1.0):
     stddev = scale/np.sqrt(np.prod(size))
     return np.abs(np.random.normal(loc = 0, scale = stddev, size = size))
@@ -96,7 +146,7 @@ def initializeWeight(size):
     return np.abs(np.random.uniform(low = -var, high = var, size = size))
 
 def initializeBias(size):
-    var = np.sqrt(6)/np.sqrt(size[0])
+    var = 10
     return np.random.uniform(low = -var, high = var, size = size)
 
 def nanargmax(arr):

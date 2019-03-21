@@ -146,7 +146,7 @@ def initializeWeight(size):
     return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
 def initializeBias(size):
-	var = np.sqrt(6)/np.sqrt(size[0])
+	var = 1
 	# return np.random.uniform(low = 0, high = var, size = size)
 	return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 

@@ -146,8 +146,8 @@ def initializeWeight(size):
     return np.abs(np.random.uniform(low = -var, high = var, size = size))
 
 def initializeBias(size):
-    var = np.sqrt(6)/np.sqrt(size[0])
-    return np.random.uniform(low = -var, high = var, size = size)
+    var = 5
+    return np.random.uniform(low = 0, high = 2*var, size = size)
 
 def nanargmax(arr):
     idx = np.nanargmax(arr)

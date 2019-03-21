@@ -16,6 +16,7 @@ from NN.utils import *
 
 import numpy as np
 import pickle
+import copy
 from tqdm import tqdm
 #####################################################
 ############### Building The Network ################
@@ -343,7 +344,7 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
         if c_val < min_val:
             min_val = c_val
-            best_params = params
+            best_params = copy.deepcopy(params)
             num_since_best = 0
             num_epochs = epoch
         else:

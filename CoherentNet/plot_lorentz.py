@@ -94,7 +94,7 @@ ax2.set_ylabel("Derivative of L(x)")
 
 ax2.legend([r'$\kappa = 1$', r'$\kappa = 2$', r'$\kappa = 5$', r'$\kappa = 10$'])"""
 
-fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+"""fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
 
 x = np.linspace(-5, 5, 1000)
 x0 = 0
@@ -121,7 +121,70 @@ ax2.set_ylabel("Derivative of L(x)")
 
 ax1.set_ylim(-1.2, 1.8)
 
-ax1.legend([r'Lorentzian', r'Logistic', r'Tanh', r'ReLU'])
+ax1.legend([r'Lorentzian', r'Logistic', r'Tanh', r'ReLU'])"""
+
+"""fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+
+x = np.linspace(-10, 10, 1000)
+x0 = 0
+gamma = 1
+
+y = lorentzComplex(x, x0, gamma)
+dy = lorentzDxComplex(x, x0, gamma)
+
+ax1.plot(x, np.abs(y))
+ax1.plot(x, np.angle(y))
+
+ax2.plot(x, np.abs(dy))
+ax2.plot(x, np.angle(dy))
+
+ax1.set_xlabel("x")
+ax2.set_xlabel("x")
+
+ax1.set_ylabel("L(x)")
+ax2.set_ylabel("Derivative of L(x)")
+
+ax1.legend(['Re(L(x))', 'Im(L(x))'])"""
+
+fig, axes = plt.subplots(nrows=2, ncols=2)
+
+gamma = 1
+
+x = np.linspace(-10, 10, 1000)
+x0 = 0
+
+y = nonlinComplex(x, x0, gamma)
+
+axes[0,0].plot(x, y.real)
+axes[0,0].plot(x, y.imag)
+
+dy = nonlinDxComplex(x, x0, gamma)
+
+axes[0,1].plot(x, dy.real)
+axes[0,1].plot(x, dy.imag)
+
+x = 0
+x0 = np.linspace(-10, 10, 1000)
+
+y = nonlinComplex(x, x0, gamma)
+
+axes[1,0].plot(x, y.real)
+axes[1,0].plot(x, y.imag)
+
+dy = nonlinDx0Complex(x, x0, gamma)
+
+axes[1,1].plot(x, dy.real)
+axes[1,1].plot(x, dy.imag)
+
+axes[0,0].set_xlabel("x")
+axes[0,1].set_xlabel("x")
+axes[1,0].set_xlabel(r'$x_{0}$')
+axes[1,1].set_xlabel(r'$x_{0}$')
+
+axes[0,0].set_ylabel("L(x)")
+ax2.set_ylabel("Derivative of L(x)")
+
+ax1.legend(['Re(L(x))', 'Im(L(x))'])
 
 plt.tight_layout()
 plt.show()

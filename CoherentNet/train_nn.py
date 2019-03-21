@@ -19,12 +19,12 @@ warnings.simplefilter('error')
 
 if __name__ == '__main__':
     
-    save_path = 'adamGD_SoftmaxCross_2Gamma_CoherentNet1616_heartDataset'
-    gamma = 2
+    save_path = 'adamGD_SoftmaxCross_4Gamma_bias1b_CoherentNet3232_heartDataset_NLdata_try0.pkl'
+    gamma = 4
 
     cost = train(gamma = gamma, save_path = save_path, continue_training = False)
 
-    params, cost, cost_val, nl1, nl2 = pickle.load(open(save_path, 'rb'))
+    params, cost, cost_val, nl1_p, nl2_p, final_layer = pickle.load(open(save_path, 'rb'))
     [w1, w2, w3, b1, b2, b3] = params
     
     # Plot cost 

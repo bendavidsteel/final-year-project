@@ -216,3 +216,25 @@ def nonlinDxWithBase(x, x0, gamma, lx):
 
 def nonlinDx0WithBase(x, x0, gamma, lx):
     return ((lx/(0.5*gamma*x))**2)*gamma*x*(x - x0)
+
+def nonlinComplex(x, x0, gamma):
+    # complex lorentz function
+    return (0.5*gamma*x)/((x.real**2 + x.imag**2 - x0.real**2 - x0.imag**2)*-1j + 0.5*gamma)
+
+def nonlinComplexDxConj(x, x0, gamma):
+    num1 = ((0.5*gamma)**2)*(1-1j)
+    num2 = ((x0.real**2) + (x0.imag**2)) * (1 + 1j)
+    num3 = (x**2) * (1j - 1)
+
+    denom1 = 0.5 * 1j * gamma
+    denom2 = x.real**2 + x.imag**2 - x0**2 - x0**2
+
+    return -1*(num1 + 0.5*gamma*(num2 + num3)) / (denom1 + denom2) ** 2
+
+def nonlinComplexDx0Conj(x, x0, gamma):
+    num = gamma * 1j * x * np.conj(x0)
+
+    denom1 = 0.5 * 1j * gamma
+    denom2 = x.real**2 + x.imag**2 - x0**2 - x0**2
+
+    return num / (denom1 + denom2) ** 2

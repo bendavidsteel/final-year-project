@@ -16,6 +16,7 @@ from NN.utils import *
 
 import numpy as np
 import pickle
+import copy
 from tqdm import tqdm
 #####################################################
 ############### Building The Network ################
@@ -306,7 +307,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 #####################################################
 
 def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
-          data_dim = 13, gamma = 2/np.pi, layers = [32,32], batch_size = 64, num_epochs = 2000,
+          data_dim = 13, gamma = 2/np.pi, layers = [32,32], batch_size = 64, max_epochs = 2000,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
@@ -344,7 +345,7 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
         cost_val = []
 
     else:
-        params, cost, cost_val = pickle.load(open(save_path, 'rb'))
+        params, cost, cost_val, num_epochs = pickle.load(open(save_path, 'rb'))
 
 
     # nl1_q5 = []
@@ -374,9 +375,9 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
     print("LR: "+str(lr)+", Batch Size: "+str(batch_size)+", Gamma: "+str(gamma))
 
     if progress_bar:
-        t = tqdm(range(num_epochs))
+        t = tqdm(range(max_epochs))
     else:
-        t = range(num_epochs)
+        t = range(max_epochs)
 
     # checking for early stopping
     min_val = float('inf')
@@ -399,7 +400,7 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
         if c_val < min_val:
             min_val = c_val
-            best_params = params
+            best_params = copy.deepcopy(params)
             num_since_best = 0
             num_epochs = epoch
         else:

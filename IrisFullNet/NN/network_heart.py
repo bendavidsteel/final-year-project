@@ -22,29 +22,32 @@ from tqdm import tqdm
 ############### Building The Network ################
 #####################################################
 
-def network(batch, label, params, gamma, validation = False):
+def network(batch, label, params, gamma, validation=False):
     
     # [f1, f2, w3, w4, w5, b1, b2, b3, b4, b5] = params 
-    [w1, w2, w3, b1, b2, b3] = params
+    [w1, w2, w3] = params
+
+    batch_size = len(batch)
 
     if type(gamma) is not list:
         gamma = [gamma, gamma]
-
+    
     ################################################
     ############## Forward Operation ###############
     ################################################
-    z1 = np.matmul(w1, batch) # convolution operation
-    a1 = lorentz(z1, b1.reshape(1,-1,1), gamma[0]) # pass through Lorentzian non-linearity
-    
-    z2 = np.matmul(w2, a1) # second convolution operation
-    a2 = lorentz(z2, b2.reshape(1,-1,1), gamma[1]) # pass through Lorentzian non-linearity
+    a1 = lorentz(np.transpose(batch, axes=(0,2,1)), np.expand_dims(w1, axis=0), gamma[0])
+    z1 = np.sum(a1, axis=2).reshape((batch_size, -1, 1))
+
+    a2 = lorentz(np.transpose(z1, axes=(0,2,1)), np.expand_dims(w2, axis=0), gamma[1])
+    z2 = np.sum(a2, axis=2).reshape((batch_size, -1, 1))
+
+    a3 = lorentz(np.transpose(z2, axes=(0,2,1)), np.expand_dims(w3, axis=0), 1)
+    out = np.sum(a3, axis=2).reshape((batch_size, -1, 1))
 
     # z2 = np.matmul(w4, a1) # first dense layer
     # a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
     
     # out = np.matmul(w5, a2) + b5.reshape(1,-1,1) # second dense layer
-
-    out = np.matmul(w3, a2) + b3.reshape(1,-1,1)
 
     probs = softmaxBatch(out) # predict class probabilities with the softmax activation function
     
@@ -76,40 +79,27 @@ def network(batch, label, params, gamma, validation = False):
     
     # da1 = np.matmul(w4.T, da2 * dl4) # loss gradients of fully-connected layer
 
-    db3 = dout
-    dw3 = dout * np.transpose(a2, (0,2,1)) 
+    dl3 = lorentzDxWithBase(np.transpose(z2, axes=(0,2,1)), w3, 1, a3)
+    dw3 = dout * -dl3
+    dz2 = np.matmul(np.transpose(dl3, axes=(0,2,1)), dout) # loss gradients of fully-connected layer
 
-    da2 = np.matmul(w3.T, dout)
+    dl2 = lorentzDxWithBase(np.transpose(z1, axes=(0,2,1)), w2, gamma[1], a2)
+    dw2 = dz2 * -dl2
+    dz1 = np.matmul(np.transpose(dl2, axes=(0,2,1)), dz2)
 
-    dl2 = lorentzDxWithBase(z2, b2.reshape(1,-1,1), gamma[1], a2)
-
-    db2 = da2 * -dl2 # lorentzian derivative with respect to x0 is minus that of with respect to x
-    dw2 = -db2 * np.transpose(a1, (0,2,1))
-
-    da1 = np.matmul(w2.T, da2 * dl2)
-
-    dl1 = lorentzDxWithBase(z1, b1.reshape(1,-1,1), gamma[0], a1)
-
-    db1 = da1 * -dl1
-    dw1 = -db1 * np.transpose(batch, (0,2,1))
+    dl1 = lorentzDxWithBase(np.transpose(batch, axes=(0,2,1)), w1, gamma[0], a1)
+    dw1 = dz1 * -dl1
     
     dw1 = np.mean(dw1, axis=0)
     dw2 = np.mean(dw2, axis=0)
     dw3 = np.mean(dw3, axis=0)
     # dw5 = np.mean(dw5, axis=0)
-    db1 = np.mean(db1, axis=0)
-    db2 = np.mean(db2, axis=0)
-    db3 = np.mean(db3, axis=0)
-    # db4 = np.mean(db4, axis=0)
-    # db5 = np.mean(db5, axis=0)
-
-    # grads = [df1, df2, dw3, dw4, dw5, db1, db2, db3, db4, db5] 
     
     # return grads, loss, nonlin1, pooled, a1, a2
 
-    grads = [dw1, dw2, dw3, db1, db2, db3]
+    grads = [dw1, dw2, dw3]
 
-    return grads, loss, a1, a2
+    return grads, loss, a1.flatten(), a2.flatten(), a3.flatten()
 
 #####################################################
 ################### Optimization ####################
@@ -119,7 +109,7 @@ def adamGD(batch, num_classes, lr, dim, beta1, beta2, params, cost, gamma):
     '''
     update the parameters through Adam gradient descnet.
     '''
-    [w1, w2, w3, b1, b2, b3] = params
+    [w1, w2, w3] = params
     
     X = batch[:,0:-1] # get batch inputs
     X = X.reshape(-1, dim, 1)
@@ -134,41 +124,26 @@ def adamGD(batch, num_classes, lr, dim, beta1, beta2, params, cost, gamma):
     dw3 = np.zeros(w3.shape)
     # dw4 = np.zeros(w4.shape)
     # dw5 = np.zeros(w5.shape)
-    db1 = np.zeros(b1.shape)
-    db2 = np.zeros(b2.shape)
-    db3 = np.zeros(b3.shape)
-    # db4 = np.zeros(b4.shape)
-    # db5 = np.zeros(b5.shape)
     
     v1 = np.zeros(w1.shape)
     v2 = np.zeros(w2.shape)
     v3 = np.zeros(w3.shape)
     # v4 = np.zeros(w4.shape)
     # v5 = np.zeros(w5.shape)
-    bv1 = np.zeros(b1.shape)
-    bv2 = np.zeros(b2.shape)
-    bv3 = np.zeros(b3.shape)
-    # bv4 = np.zeros(b4.shape)
-    # bv5 = np.zeros(b5.shape)
     
     s1 = np.zeros(w1.shape)
     s2 = np.zeros(w2.shape)
     s3 = np.zeros(w3.shape)
     # s4 = np.zeros(w4.shape)
     # s5 = np.zeros(w5.shape)
-    bs1 = np.zeros(b1.shape)
-    bs2 = np.zeros(b2.shape)
-    bs3 = np.zeros(b3.shape)
-    # bs4 = np.zeros(b4.shape)
-    # bs5 = np.zeros(b5.shape)
         
     x = X
     y = np.eye(num_classes)[Y.astype(int)].reshape(batch_size, num_classes, 1) # convert label to one-hot
     
     # Collect Gradients for training example
 
-    grads, loss, nl1, nl2 = network(x, y, params, gamma)
-    [dw1, dw2, dw3, db1, db2, db3] = grads
+    grads, loss, nl1, nl2, nl3 = network(x, y, params, gamma)
+    [dw1, dw2, dw3] = grads
 
     cost_ = loss
 
@@ -177,53 +152,30 @@ def adamGD(batch, num_classes, lr, dim, beta1, beta2, params, cost, gamma):
     v1 = beta1*v1 + (1-beta1)*dw1 # momentum update
     s1 = beta2*s1 + (1-beta2)*(dw1)**2 # RMSProp update
     w1 -= lr * v1/np.sqrt(s1+1e-7) # combine momentum and RMSProp to perform update with Adam
-    w1[w1<0] = 0
-    
-    bv1 = beta1*bv1 + (1-beta1)*db1
-    bs1 = beta2*bs1 + (1-beta2)*(db1)**2
-    b1 -= lr * bv1/np.sqrt(bs1+1e-7)
    
     v2 = beta1*v2 + (1-beta1)*dw2
     s2 = beta2*s2 + (1-beta2)*(dw2)**2
     w2 -= lr * v2/np.sqrt(s2+1e-7)
-    w2[w2<0] = 0
-                       
-    bv2 = beta1*bv2 + (1-beta1) * db2
-    bs2 = beta2*bs2 + (1-beta2)*(db2)**2
-    b2 -= lr * bv2/np.sqrt(bs2+1e-7)
     
     v3 = beta1*v3 + (1-beta1) * dw3
     s3 = beta2*s3 + (1-beta2)*(dw3)**2
     w3 -= lr * v3/np.sqrt(s3+1e-7)
-    w3[w3<0] = 0
-    
-    bv3 = beta1*bv3 + (1-beta1) * db3
-    bs3 = beta2*bs3 + (1-beta2)*(db3)**2
-    b3 -= lr * bv3/np.sqrt(bs3+1e-7)
     
     # v4 = beta1*v4 + (1-beta1) * dw4
     # s4 = beta2*s4 + (1-beta2)*(dw4)**2
     # w4 -= lr * v4 / np.sqrt(s4+1e-7)
-    
-    # bv4 = beta1*bv4 + (1-beta1)*db4
-    # bs4 = beta2*bs4 + (1-beta2)*(db4)**2
-    # b4 -= lr * bv4 / np.sqrt(bs4+1e-7)
 
     # v5 = beta1*v5 + (1-beta1) * dw5/batch_size
     # s5 = beta2*s5 + (1-beta2)*(dw5/batch_size)**2
     # w5 -= lr * v5 / np.sqrt(s5+1e-7)
     
-    # bv5 = beta1*bv5 + (1-beta1)*db5/batch_size
-    # bs5 = beta2*bs5 + (1-beta2)*(db5/batch_size)**2
-    # b5 -= lr * bv5 / np.sqrt(bs5+1e-7)
-    
 
     cost.append(cost_)
 
-    params = [w1, w2, w3, b1, b2, b3]
+    params = [w1, w2, w3]
     
     # return params, cost, nl1, nl2, nl3, nl4
-    return params, cost, nl1, nl2
+    return params, cost, nl1, nl2, nl3
 
 
 def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
@@ -306,13 +258,13 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
-          data_dim = 4, gamma = 2/np.pi, layers = [32,32], batch_size = 64, num_epochs = 2000,
+def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
+          data_dim = 13, gamma = 2/np.pi, layers = [32,32], batch_size = 64, num_epochs = 5000,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
-    X, y_dash = iris_training_set()
-    X_val, y_dash_val = iris_validation_set()
+    X, y_dash = heart_training_set()
+    X_val, y_dash_val = heart_validation_set()
 
     train_data = norm_stack_shuffle(X,y_dash)
 
@@ -331,15 +283,7 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
         # w4 = initializeWeight(w4)
         # w5 = initializeWeight(w5)
 
-        b1, b2, b3 = (hidden_layer1, 1), (hidden_layer2, 1), (num_classes, 1)
-
-        b1 = initializeBias(b1)
-        b2 = initializeBias(b2)
-        b3 = initializeBias(b3)
-        # b4 = initializeBias(b4)
-        # b5 = initializeBias(b5)
-
-        params = [w1, w2, w3, b1, b2, b3]
+        params = [w1, w2, w3]
 
         cost = []
         cost_val = []
@@ -416,9 +360,22 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
         for batch in batches:
             # params, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
-            params, cost, nl1, nl2 = adamGD(batch, num_classes, lr, data_dim, beta1, beta2, params, cost, gamma)
+            params, cost, nl1, nl2, nl3 = adamGD(batch, num_classes, lr, data_dim, beta1, beta2, params, cost, gamma)
+
             if progress_bar:
-                t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
+                t.set_description("Cost: %.2f" % (cost[-1]))
+
+            # nl1_m.append(np.mean(nl1))
+            # nl1_std.append(np.std(nl1))
+
+            # nl2_m.append(np.mean(nl2))
+            # nl2_std.append(np.std(nl2))
+
+            # nl3_m.append(np.mean(nl3))
+            # nl3_std.append(np.std(nl3))
+
+            # nl4_m.append(np.mean(nl4))
+            # nl4_std.append(np.std(nl4))
 
             # nl1_q5.append(np.percentile(nl1, 5))
             # nl1_q25.append(np.percentile(nl1, 25))
@@ -448,7 +405,7 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
     if save:    
         # to_save = [params, cost, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95, final_layer]
-        to_save = [best_params, cost, cost_val, num_epochs]
+        to_save = [params, cost, cost_val, num_epochs]
         
         with open(save_path, 'wb') as file:
             pickle.dump(to_save, file)

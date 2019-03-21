@@ -1,4 +1,4 @@
-from NN.network_iris import *
+from NN.network_heart import *
 from NN.utils import *
 
 import matplotlib.pyplot as plt
@@ -7,25 +7,25 @@ import pickle
 
 if __name__ == '__main__':
 
-    eval_save_path = "layer_gamma_accuracy_full_6464_0.05_15_iris.pkl"
+    eval_save_path = "layer_gamma_accuracy_full_bias10b_6464_0.05_15_heart.pkl"
 
-    num_gammas = 20
+    num_gammas = 15
 
-    iters = 5
+    iters = 3
 
     g_vals = np.linspace(0.05, 15, num_gammas)
 
-    # x_g = np.zeros((num_gammas**2,))
-    # y_g = np.zeros((num_gammas**2,))
+    x_g = np.zeros((num_gammas**2,))
+    y_g = np.zeros((num_gammas**2,))
     # z_a = np.zeros((num_gammas**3,))
-    # g_a = np.zeros((num_gammas**2,))
-    # e_n = np.zeros((num_gammas**2,))
+    g_a = np.zeros((num_gammas**2,))
+    e_n = np.zeros((num_gammas**2,))
 
-    to_save = pickle.load(open(eval_save_path, 'rb')) 
+    # to_save = pickle.load(open(eval_save_path, 'rb')) 
 
-    [x_g, y_g, g_a, e_n] = to_save
+    # [x_g, y_g, g_a, e_n] = to_save
 
-    for i in range(3, num_gammas):
+    for i in range(num_gammas):
         for j in range(num_gammas):
             # for k in range(num_gammas):
 
@@ -42,13 +42,13 @@ if __name__ == '__main__':
                 params, cost, cost_val, num_epochs = pickle.load(open(save_path, 'rb'))
 
                 # Get test data
-                X, y_dash = iris_testing_set()
-                # X, y_dash = heart_testing_set()
+                # X, y_dash = iris_testing_set()
+                X, y_dash = heart_testing_set()
                 # Normalize the data
                 test_data = norm_stack_shuffle(X,y_dash)
 
-                num_classes = 3
-                # num_classes = 2
+                # num_classes = 3
+                num_classes = 2
                 
                 X = test_data[:,0:-1]
                 y = test_data[:,-1]
