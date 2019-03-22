@@ -33,7 +33,7 @@ if __name__ == '__main__':
     plt.plot(np.linspace(0, len(cost), len(cost_val)), cost_val)
     plt.xlabel('# Iterations')
     plt.ylabel('Cost')
-    plt.legend('Loss', loc='upper right')
+    plt.legend(['Training Loss', 'Validation Loss'], loc='upper right')
     plt.show()
 
     # Get test data

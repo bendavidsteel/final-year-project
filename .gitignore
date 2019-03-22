@@ -52,3 +52,5 @@ IrisNet/adamGD_SoftmaxCross_10_3_Gamma_Net3232_heartDataset_varyLR
 *.meta
 *.data-00000-of-00001
 MNISTConvNetTF/checkpoints/checkpoint
+CoherentNet/InvalidFiles/
+*.zip

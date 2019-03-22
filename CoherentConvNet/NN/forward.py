@@ -40,6 +40,33 @@ def convolution(image, filt, s=1):
         
     return out
 
+def convolutionComplex(image, filt, s=1):
+    '''
+    Confolves `filt` over `image` using stride `s`
+    '''
+    (n_f, n_c_f, f, _) = filt.shape # filter dimensions
+    n_c, in_dim, _ = image.shape # image dimensions
+    
+    out_dim = int((in_dim - f)/s)+1 # calculate output dimensions
+    
+    assert n_c == n_c_f, "Dimensions of filter must match dimensions of input image"
+    
+    out = np.zeros((n_f,out_dim,out_dim), dtype=complex)
+    
+    # convolve the filter over every part of the image, adding the bias at each step. 
+    for curr_f in range(n_f):
+        curr_y = out_y = 0
+        while curr_y + f <= in_dim:
+            curr_x = out_x = 0
+            while curr_x + f <= in_dim:
+                out[curr_f, out_y, out_x] = np.sum(filt[curr_f] * image[:,curr_y:curr_y+f, curr_x:curr_x+f])
+                curr_x += s
+                out_x += 1
+            curr_y += s
+            out_y += 1
+        
+    return out
+
 def convolutionBatch(image, filt, s=1):
     '''
     Confolves `filt` over `image` using stride `s`
@@ -52,6 +79,34 @@ def convolutionBatch(image, filt, s=1):
     assert n_c == n_c_f, "Dimensions of filter must match dimensions of input image"
     
     out = np.zeros((batch_size, n_f,out_dim,out_dim))
+    
+    # convolve the filter over every part of the image, adding the bias at each step. 
+    for curr_b in range(batch_size):
+        for curr_f in range(n_f):
+            curr_y = out_y = 0
+            while curr_y + f <= in_dim:
+                curr_x = out_x = 0
+                while curr_x + f <= in_dim:
+                    out[curr_b, curr_f, out_y, out_x] = np.sum(filt[curr_f] * image[curr_b, :,curr_y:curr_y+f, curr_x:curr_x+f])
+                    curr_x += s
+                    out_x += 1
+                curr_y += s
+                out_y += 1
+        
+    return out
+
+def convolutionComplexBatch(image, filt, s=1):
+    '''
+    Confolves `filt` over `image` using stride `s`
+    '''
+    (n_f, n_c_f, f, _) = filt.shape # filter dimensions
+    batch_size, n_c, in_dim, _ = image.shape # image dimensions
+    
+    out_dim = int((in_dim - f)/s)+1 # calculate output dimensions
+    
+    assert n_c == n_c_f, "Dimensions of filter must match dimensions of input image"
+    
+    out = np.zeros((batch_size, n_f,out_dim,out_dim), dtype=complex)
     
     # convolve the filter over every part of the image, adding the bias at each step. 
     for curr_b in range(batch_size):

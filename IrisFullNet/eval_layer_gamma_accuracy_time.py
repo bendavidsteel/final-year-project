@@ -15,17 +15,17 @@ if __name__ == '__main__':
 
     g_vals = np.linspace(0.05, 15, num_gammas)
 
-    x_g = np.zeros((num_gammas**2,))
-    y_g = np.zeros((num_gammas**2,))
+    # x_g = np.zeros((num_gammas**2,))
+    # y_g = np.zeros((num_gammas**2,))
     # z_a = np.zeros((num_gammas**3,))
-    g_a = np.zeros((num_gammas**2,))
-    e_n = np.zeros((num_gammas**2,))
+    # g_a = np.zeros((num_gammas**2,))
+    # e_n = np.zeros((num_gammas**2,))
 
-    # to_save = pickle.load(open(eval_save_path, 'rb')) 
+    to_save = pickle.load(open(eval_save_path, 'rb')) 
 
-    # [x_g, y_g, g_a, e_n] = to_save
+    [x_g, y_g, g_a, e_n] = to_save
 
-    for i in range(num_gammas):
+    for i in range(5, num_gammas):
         for j in range(num_gammas):
             # for k in range(num_gammas):
 

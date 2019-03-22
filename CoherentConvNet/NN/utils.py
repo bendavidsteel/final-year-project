@@ -8,6 +8,7 @@ Date: June 12th, 2018
 from NN.forward import *
 import numpy as np
 import gzip
+import pickle
 
 #####################################################
 ################## Utility Methods ##################
@@ -136,53 +137,96 @@ def heart_testing_set():
 	# splitting 80/20
 	return stats[4::5], labels[4::5]
 
+def extract_shapes_dataset():
+	'''
+	Extract shapes dataset
+	'''
+	save_path = "shapes14.pkl"
+
+	with open(save_path, 'rb') as f:
+		shapes, labels = pickle.load(f)
+
+	return shapes.reshape(-1, 14*14), labels.reshape(-1,1)
+
+def shapes_training_set():
+	shapes, labels = extract_shapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	return np.concatenate((shapes[::5], shapes[1::5], shapes[2::5])), np.concatenate((labels[::5], labels[1::5], labels[2::5]))
+
+def shapes_validation_set():
+	shapes, labels = extract_shapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return shapes[3::5], labels[3::5]
+
+def shapes_testing_set():
+	shapes, labels = extract_shapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return shapes[4::5], labels[4::5]
+
 def initializeFilter(size, scale = 1.0):
-    stddev = scale/np.sqrt(np.prod(size))
-    return np.abs(np.random.normal(loc = 0, scale = stddev, size = size))
+    var = scale/np.sqrt(np.prod(size))
+    return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
 def initializeWeight(size):
     # scale by inverse square root of size of previous layer
     var = np.sqrt(6)/np.sqrt(size[0] + size[1])
-    return np.abs(np.random.uniform(low = -var, high = var, size = size))
+    return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
 def initializeBias(size):
-    var = 10
-    return np.random.uniform(low = -2*var, high = 0, size = size)
+	var = 1
+	# return np.random.uniform(low = 0, high = var, size = size)
+	return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
 def nanargmax(arr):
     idx = np.nanargmax(arr)
     idxs = np.unravel_index(idx, arr.shape)
     return idxs 
 
-def norm_stack_shuffle(x, y_dash):
-	x -= np.mean(x, axis=0)
-	x /= np.std(x, axis=0)
+def norm_stack_shuffle(x, y_dash, by_column=True):
+
+	if by_column:
+		x -= np.mean(x, axis=0)
+		x /= np.std(x, axis=0)
+	else:
+		x -= np.mean(x)
+		x /= np.std(x)
+
 	data = np.hstack((x,y_dash))
     
 	np.random.shuffle(data)
 
 	return data
 
-def predict(data, label, params, gamma):
+def predict(image, label, params, gamma):
 	'''
 	Make predictions with trained filters/weights. 
 	'''
-	[w1, w2, w3, b1, b2, b3] = params
+	[f1, f2, w3, w4, b1, b2, b3, b4] = params
 
-	if type(gamma) is not list:
-		gamma = [gamma, gamma]
+	conv1 = convolutionComplex(image, f1) # convolution operation
+	nonlin1 = nonlinComplex(conv1, b1.reshape(-1, 1, 1), gamma) # pass through Lorentzian non-linearity
 
-	z1 = w1.dot(data) # convolution operation
-	a1 = lorentz(z1.reshape(-1,1), b1, gamma[0]) # pass through Lorentzian non-linearity
-    
-	z2 = w2.dot(a1) # second convolution operation
-	a2 = lorentz(z2.reshape(-1,1), b2, gamma[1]) # pass through Lorentzian non-linearity
+	conv2 = convolutionComplex(nonlin1, f2) # second convolution operation
+	pooled = nonlinComplex(conv2, b2.reshape(-1, 1, 1), gamma) # pass through Lorentzian non-linearity
 
-	out = w3.dot(a2) + b3.reshape(-1,1)
+	(nf2, dim2, _) = pooled.shape
+	fc = pooled.reshape((nf2 * dim2 * dim2, 1)) # flatten pooled layer
 
-	out = softmax(out)
-    
-    # not using softmax as exponential cannot be implemented in optics
-    
+	z1 = w3.dot(fc) # second convolution operation
+	a1 = nonlinComplex(z1, b3.reshape(-1,1), gamma) # pass through Lorentzian non-linearity
+
+	# z2 = np.matmul(w4, a1) # first dense layer
+	# a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
+
+	# out = np.matmul(w5, a2) + b5.reshape(1,-1,1) # second dense layer
+
+	out = w4.dot(a1) + b4.reshape(-1,1)
+
+	measured = np.abs(out)
+
+	prob = softmax(measured)
+	# not using softmax as exponential cannot be implemented in optics
+
 	return np.argmax(out), np.max(out)
-    

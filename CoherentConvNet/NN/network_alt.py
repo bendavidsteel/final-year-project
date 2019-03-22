@@ -11,12 +11,11 @@ Adapted by Ben Steel
 Date: 05/02/19
 '''
 
-from CNN.forward import *
-from CNN.backward import *
-from CNN.utils import *
+from NN.forward import *
+from NN.backward import *
+from NN.utils import *
 
 import numpy as np
-import json
 import pickle
 import copy
 from tqdm import tqdm
@@ -28,21 +27,22 @@ def conv(image, label, params, gamma, validation = False):
     
     # [f1, f2, w3, w4, w5, b1, b2, b3, b4, b5] = params 
     [f1, f2, w3, w4, b1, b2, b3, b4] = params
-    
+
     ################################################
     ############## Forward Operation ###############
     ################################################
-    conv1 = convolutionBatch(image, f1) # convolution operation
-    nonlin1 = lorentz(conv1, b1.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
+
+    conv1 = convolutionComplexBatch(image, f1) # convolution operation
+    nonlin1 = nonlinComplex(conv1, b1.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
     
-    conv2 = convolutionBatch(nonlin1, f2) # second convolution operation
-    pooled = lorentz(conv2, b2.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
+    conv2 = convolutionComplexBatch(nonlin1, f2) # second convolution operation
+    pooled = nonlinComplex(conv2, b2.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
     
     (batch_size, nf2, dim2, _) = pooled.shape
     fc = pooled.reshape((batch_size, nf2 * dim2 * dim2, 1)) # flatten pooled layer
-    
-    z1 = np.matmul(w3, fc)
-    a1 = lorentz(z1, b3.reshape(1, -1, 1), gamma)
+
+    z1 = np.matmul(w3, fc) # second convolution operation
+    a1 = nonlinComplex(z1, b3.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
 
     # z2 = np.matmul(w4, a1) # first dense layer
     # a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
@@ -51,7 +51,9 @@ def conv(image, label, params, gamma, validation = False):
 
     out = np.matmul(w4, a1) + b4.reshape(1,-1,1)
 
-    probs = softmaxBatch(out) # predict class probabilities with the softmax activation function
+    measured = np.abs(out)
+
+    probs = softmaxBatch(measured) # predict class probabilities with the softmax activation function
     
     ################################################
     #################### Loss ######################
@@ -67,7 +69,7 @@ def conv(image, label, params, gamma, validation = False):
     ################################################
     ############# Backward Operation ###############
     ################################################
-    dout = probs - label # derivative of loss w.r.t. final dense layer output
+    dout = probs - label # derivative of loss due to cross entropy and softmax
 
     # dw5 = dout * np.transpose(a2, (0,2,1)) # loss gradient of final dense layer weights
     # db5 = dout # loss gradient of final dense layer biases
@@ -81,43 +83,45 @@ def conv(image, label, params, gamma, validation = False):
     
     # da1 = np.matmul(w4.T, da2 * dl4) # loss gradients of fully-connected layer
 
-    dw4 = dout * np.transpose(a1, (0,2,1)) 
+    out[out == 0] = 0.00001 + 0j # avoid divide by zero errors
+    dmeasured = out / np.abs(out)
+
+    outmeasured = dout * dmeasured
+
     db4 = dout
+    dw4 = outmeasured * np.transpose(a1, (0,2,1)).conj()
 
-    da1 = np.matmul(w4.T, dout)
+    da1 = np.matmul(w4.conj().T, outmeasured)
 
-    dl3 = lorentzDxWithBase(z1, b3.reshape(1, -1, 1), gamma, a1)
+    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(z1, b3.reshape(1,-1,1), gamma)
 
-    dal = da1 * dl3
+    az = da1.real * dzr + 1j * da1.imag * dzi
 
-    dw3 = dal * np.transpose(fc, (0,2,1))
-    db3 = -dal # lorentzian derivative with respect to x0 is minus that of with respect to x
+    db3 = da1.real * dbr + 1j * da1.imag * dbi
+    dw3 = az * np.transpose(fc, (0,2,1)).conj()
 
-    dfc = np.matmul(w3.T, dal)
-    dpool = dfc.reshape(pooled.shape) # reshape fully connected into dimensions of pooling layer
+    dfc = np.matmul(w3.conj().T, az)
+    dpool = dfc.reshape(pooled.shape)
+
+    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(conv2, b2.reshape(1,-1,1,1), gamma)
+    dconv2 = dpool.real * dzr + 1j * dpool.imag * dzi
+    db2 = np.mean(dpool.real * dbr + 1j * dpool.imag * dbi, axis=(2,3))
+    dnonlin1, df2 = convolutionComplexBackwardBatch(dconv2, conv1, f2) # backpropagate previous gradient through second convolutional layer.
     
-    dl2 = lorentzDxWithBase(conv2, b2.reshape(1, -1, 1, 1), gamma, pooled)
-    dconv2 = dpool * dl2 # backpropagate through lorentzian
-    db2 = np.mean(-dconv2, axis=(2,3)) # find grad for bias
-    dnonlin1, df2 = convolutionBackwardBatch(dconv2, conv1, f2) # backpropagate previous gradient through second convolutional layer.
-    
-    dl1 = lorentzDxWithBase(conv1, b1.reshape(1, -1, 1, 1), gamma, nonlin1)
-    dconv1 = dnonlin1 * dl1 # backpropagate through lorentzian
-    db1 = np.mean(-dconv1, axis=(2,3)) # find grad for bias
-    df1 = convolutionBackwardBatch(dconv1, image, f1, final=True) # backpropagate previous gradient through first convolutional layer.
-    
+    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(conv1, b1.reshape(1,-1,1,1), gamma)
+    dconv1 = dnonlin1.real * dzr + 1j * dnonlin1.imag * dzi
+    db1 = np.mean(dnonlin1.real * dbr + 1j * dnonlin1.imag * dbi, axis=(2,3))
+    df1 = convolutionComplexBackwardBatch(dconv1, image, f1, final=True) # backpropagate previous gradient through second convolutional layer.
+
     df1 = np.mean(df1, axis=0)
     df2 = np.mean(df2, axis=0)
     dw3 = np.mean(dw3, axis=0)
     dw4 = np.mean(dw4, axis=0)
-    # dw5 = np.mean(dw5, axis=0)
-    db1 = np.mean(db1, axis=0).reshape(-1, 1)
-    db2 = np.mean(db2, axis=0).reshape(-1, 1)
+    db1 = np.mean(db1, axis=0).reshape(-1,1)
+    db2 = np.mean(db2, axis=0).reshape(-1,1)
     db3 = np.mean(db3, axis=0)
     db4 = np.mean(db4, axis=0)
     # db5 = np.mean(db5, axis=0)
-
-    
 
     # grads = [df1, df2, dw3, dw4, dw5, db1, db2, db3, db4, db5] 
     
@@ -135,7 +139,6 @@ def adamGD(batch, num_classes, lr, dim, n_c, beta1, beta2, params, cost, gamma):
     '''
     update the parameters through Adam gradient descnet.
     '''
-    # [f1, f2, w3, w4, w5, b1, b2, b3, b4, b5] = params
     [f1, f2, w3, w4, b1, b2, b3, b4] = params
     
     X = batch[:,0:-1] # get batch inputs
@@ -324,31 +327,21 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, img_depth = 1, f = 3, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, batch_size = 64, max_epochs = 500,
-          save_path = 'params', save = True, continue_training = False, old_save='params'):
+def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
+          img_dim = 14, img_depth = 1, f = 3, num_filt1 = 8, num_filt2 = 8, gamma = 2/np.pi, layers = [32,32], batch_size = 64, max_epochs = 5000,
+          save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
     X, y_dash = shapes_training_set()
-
-    X -= np.mean(X)
-    X /= np.std(X)
-    train_data = np.hstack((X,y_dash))
-    
-    np.random.shuffle(train_data)
-
     X_val, y_dash_val = shapes_validation_set()
 
-    X_val -= np.mean(X_val)
-    X_val /= np.std(X_val)
-    val_data = np.hstack((X_val,y_dash_val))
-    
-    np.random.shuffle(val_data)
+    train_data = norm_stack_shuffle(X,y_dash, by_column=False)
+
+    val_data = norm_stack_shuffle(X_val,y_dash_val, by_column=False)
 
     num_conv_layers = 2
     flattened_size = ((img_dim - num_conv_layers*(f - 1))**2) * num_filt2
 
-    # hidden_layer1 = 64
-    # hidden_layer2 = 64
     hidden_layer = 128
 
     if not continue_training:
@@ -376,54 +369,58 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, 
         # params = [f1, f2, w3, w4, w5, b1, b2, b3, b4, b5]
         params = [f1, f2, w3, w4, b1, b2, b3, b4]
 
+        cost = []
+        cost_val = []
+
     else:
-        params, final_layer = pickle.load(open(old_save + '.pkl', 'rb'))
+        params, cost, cost_val = pickle.load(open(save_path, 'rb'))
 
-    cost = []
-    cost_val = []
-    
-    conv_s = 1
+    nl1_l = []
+    nl2_l = []
+    nl3_l = []
 
-    config = [num_filt1, num_filt2, conv_s, gamma, batch_size]
+    nl1_r5 = []
+    nl1_r25 = []
+    nl1_r50 = []
+    nl1_r75 = []
+    nl1_r95 = []
 
-    
+    nl2_r5 = []
+    nl2_r25 = []
+    nl2_r50 = []
+    nl2_r75 = []
+    nl2_r95 = []
 
-    # nl1_m = []
-    # nl1_std = []
-    # nl2_m = []
-    # nl2_std = []
-    # nl3_m = []
-    # nl3_std = []
-    # nl4_m = []
-    # nl4_std = []
+    nl3_r5 = []
+    nl3_r25 = []
+    nl3_r50 = []
+    nl3_r75 = []
+    nl3_r95 = []
 
-    nl1_q5 = []
-    nl1_q25 = []
-    nl1_q50 = []
-    nl1_q75 = []
-    nl1_q95 = []
+    nl1_i5 = []
+    nl1_i25 = []
+    nl1_i50 = []
+    nl1_i75 = []
+    nl1_i95 = []
 
-    nl2_q5 = []
-    nl2_q25 = []
-    nl2_q50 = []
-    nl2_q75 = []
-    nl2_q95 = []
+    nl2_i5 = []
+    nl2_i25 = []
+    nl2_i50 = []
+    nl2_i75 = []
+    nl2_i95 = []
 
-    nl3_q5 = []
-    nl3_q25 = []
-    nl3_q50 = []
-    nl3_q75 = []
-    nl3_q95 = []
-
-    # nl4_q5 = []
-    # nl4_q25 = []
-    # nl4_q50 = []
-    # nl4_q75 = []
-    # nl4_q95 = []
+    nl3_i5 = []
+    nl3_i25 = []
+    nl3_i50 = []
+    nl3_i75 = []
+    nl3_i95 = []
 
     print("LR: "+str(lr)+", Batch Size: "+str(batch_size)+", Gamma: "+str(gamma))
 
-    t = tqdm(range(max_epochs))
+    if progress_bar:
+        t = tqdm(range(max_epochs))
+    else:
+        t = range(max_epochs)
 
     # checking for early stopping
     min_val = float('inf')
@@ -445,8 +442,6 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, 
 
         c_val = conv(x_val, y_val, params, gamma, validation=True)
 
-        cost_val.append(c_val)
-
         if c_val < min_val:
             min_val = c_val
             best_params = copy.deepcopy(params)
@@ -454,11 +449,12 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, 
             num_epochs = epoch
         else:
             if num_since_best > PATIENCE:
-                print()
                 print("Early stopping due to non improvement of validation accuracy")
                 break
             else:
                 num_since_best += 1
+
+        cost_val.append(c_val)
 
         np.random.shuffle(train_data)
         batches = [train_data[k:k + batch_size] for k in range(0, train_data.shape[0], batch_size)]
@@ -466,62 +462,64 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, 
         for batch in batches:
             # params, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
             params, cost, nl1, nl2, nl3 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
-            t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
 
-            # nl1_m.append(np.mean(nl1))
-            # nl1_std.append(np.std(nl1))
+            if progress_bar:
+                t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
 
-            # nl2_m.append(np.mean(nl2))
-            # nl2_std.append(np.std(nl2))
+            nl1_r5.append(np.percentile(nl1.real, 5))
+            nl1_r25.append(np.percentile(nl1.real, 25))
+            nl1_r50.append(np.percentile(nl1.real, 50))
+            nl1_r75.append(np.percentile(nl1.real, 75))
+            nl1_r95.append(np.percentile(nl1.real, 95))
 
-            # nl3_m.append(np.mean(nl3))
-            # nl3_std.append(np.std(nl3))
+            nl2_r5.append(np.percentile(nl2.real, 5))
+            nl2_r25.append(np.percentile(nl2.real, 25))
+            nl2_r50.append(np.percentile(nl2.real, 50))
+            nl2_r75.append(np.percentile(nl2.real, 75))
+            nl2_r95.append(np.percentile(nl2.real, 95))
 
-            # nl4_m.append(np.mean(nl4))
-            # nl4_std.append(np.std(nl4))
+            nl3_r5.append(np.percentile(nl3.real, 5))
+            nl3_r25.append(np.percentile(nl3.real, 25))
+            nl3_r50.append(np.percentile(nl3.real, 50))
+            nl3_r75.append(np.percentile(nl3.real, 75))
+            nl3_r95.append(np.percentile(nl3.real, 95))
 
-            nl1_q5.append(np.percentile(nl1, 5))
-            nl1_q25.append(np.percentile(nl1, 25))
-            nl1_q50.append(np.percentile(nl1, 50))
-            nl1_q75.append(np.percentile(nl1, 75))
-            nl1_q95.append(np.percentile(nl1, 95))
+            nl1_i5.append(np.percentile(nl1.imag, 5))
+            nl1_i25.append(np.percentile(nl1.imag, 25))
+            nl1_i50.append(np.percentile(nl1.imag, 50))
+            nl1_i75.append(np.percentile(nl1.imag, 75))
+            nl1_i95.append(np.percentile(nl1.imag, 95))
 
-            nl2_q5.append(np.percentile(nl2, 5))
-            nl2_q25.append(np.percentile(nl2, 25))
-            nl2_q50.append(np.percentile(nl2, 50))
-            nl2_q75.append(np.percentile(nl2, 75))
-            nl2_q95.append(np.percentile(nl2, 95))
+            nl2_i5.append(np.percentile(nl2.imag, 5))
+            nl2_i25.append(np.percentile(nl2.imag, 25))
+            nl2_i50.append(np.percentile(nl2.imag, 50))
+            nl2_i75.append(np.percentile(nl2.imag, 75))
+            nl2_i95.append(np.percentile(nl2.imag, 95))
 
-            nl3_q5.append(np.percentile(nl3, 5))
-            nl3_q25.append(np.percentile(nl3, 25))
-            nl3_q50.append(np.percentile(nl3, 50))
-            nl3_q75.append(np.percentile(nl3, 75))
-            nl3_q95.append(np.percentile(nl3, 95))
-
-            # nl4_q5.append(np.percentile(nl4, 5))
-            # nl4_q25.append(np.percentile(nl4, 25))
-            # nl4_q50.append(np.percentile(nl4, 50))
-            # nl4_q75.append(np.percentile(nl4, 75))
-            # nl4_q95.append(np.percentile(nl4, 95))
+            nl3_i5.append(np.percentile(nl3.imag, 5))
+            nl3_i25.append(np.percentile(nl3.imag, 25))
+            nl3_i50.append(np.percentile(nl3.imag, 50))
+            nl3_i75.append(np.percentile(nl3.imag, 75))
+            nl3_i95.append(np.percentile(nl3.imag, 95))
 
     final_layer = [nl1, nl2, nl3]
 
-    layer_q5 = [nl1_q5, nl2_q5, nl3_q5]
-    layer_q25 = [nl1_q25, nl2_q25, nl3_q25]
-    layer_q50 = [nl1_q50, nl2_q50, nl3_q50]
-    layer_q75 = [nl1_q75, nl2_q75, nl3_q75]
-    layer_q95 = [nl1_q95, nl2_q95, nl3_q95]
+    # layer_q5 = [nl1_q5, nl2_q5]
+    # layer_q25 = [nl1_q25, nl2_q25]
+    # layer_q50 = [nl1_q50, nl2_q50]
+    # layer_q75 = [nl1_q75, nl2_q75]
+    # layer_q95 = [nl1_q95, nl2_q95]
 
-    if save:
-        to_save_pickle = [params, final_layer]
-        to_save_json = [cost, cost_val, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95]
-        # to_save = [params, cost, cost_val]
+    nl1_p = [nl1_r5, nl1_r25, nl1_r50, nl1_r75, nl1_r95, nl1_i5, nl1_i25, nl1_i50, nl1_i75, nl1_i95]
+    nl2_p = [nl2_r5, nl2_r25, nl2_r50, nl2_r75, nl2_r95, nl2_i5, nl2_i25, nl2_i50, nl2_i75, nl2_i95]
+    nl3_p = [nl3_r5, nl3_r25, nl3_r50, nl3_r75, nl3_r95, nl3_i5, nl3_i25, nl3_i50, nl3_i75, nl3_i95]
 
-        with open(save_path + '.pkl', 'wb') as file:
-            pickle.dump(to_save_pickle, file)
+    if save:    
+        # to_save = [params, cost, cost_val, nl1_l, nl2_l]
+        to_save = [best_params, cost, cost_val, nl1_p, nl2_p, nl3_p, final_layer]
         
-        with open(save_path + '.json', 'w') as file:
-            json.dump(to_save_json, file)
+        with open(save_path, 'wb') as file:
+            pickle.dump(to_save, file)
         
     return cost
         

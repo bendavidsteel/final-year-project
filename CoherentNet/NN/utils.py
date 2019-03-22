@@ -174,16 +174,18 @@ def predict(data, label, params, gamma):
 		gamma = [gamma, gamma]
 
 	z1 = w1.dot(data) # convolution operation
-	a1 = lorentz(z1.reshape(-1,1), b1, gamma[0]) # pass through Lorentzian non-linearity
+	a1 = nonlinComplex(z1.reshape(-1,1), b1, gamma[0]) # pass through Lorentzian non-linearity
     
 	z2 = w2.dot(a1) # second convolution operation
-	a2 = lorentz(z2.reshape(-1,1), b2, gamma[1]) # pass through Lorentzian non-linearity
+	a2 = nonlinComplex(z2.reshape(-1,1), b2, gamma[1]) # pass through Lorentzian non-linearity
 
 	out = w3.dot(a2) + b3.reshape(-1,1)
 
-	out = softmax(out)
+	measured = np.abs(out)
+
+	softout = softmax(measured)
     
     # not using softmax as exponential cannot be implemented in optics
     
-	return np.argmax(out), np.max(out)
+	return np.argmax(softout), np.max(softout)
     
