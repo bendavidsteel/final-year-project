@@ -37,9 +37,10 @@ ax4.tick_params(axis='y', labelcolor='r')
 
 ax6 = ax5.twinx()
 
-x = np.arange(1590, 1610, 0.001)
-x0 = 1600
+x = np.arange(0, 20, 0.001)
+x0 = 10
 gamma = 1
+
 ax5.plot(x, lorentz(x, x0, gamma), color='b', linestyle=':')
 
 ax6.plot(x, nonlin(x, x0, gamma), color='r', linestyle='--')
@@ -52,7 +53,6 @@ ax6.tick_params(axis='y', labelcolor='r')
 
 ax8 = ax7.twinx()
 
-x = np.arange(1590, 1610, 0.001)
 y1 = lorentzDx(x, x0, gamma)
 ax7.plot(x, y1, color='b', linestyle=':')
 
@@ -158,12 +158,35 @@ y = nonlinComplex(x, x0, gamma)
 axes[0,0].plot(x, y.real)
 axes[0,0].plot(x, y.imag)
 
-dy = nonlinDxComplex(x, x0, gamma)
+dyr, dyi, _, _ = nonlinComplexDxDx0Split(x, x0, gamma)
 
-axes[0,1].plot(x, dy.real)
-axes[0,1].plot(x, dy.imag)
+axes[0,1].plot(x, dyr)
+axes[0,1].plot(x, dyi)
 
-x = 0
+x = np.linspace(9, 11, 1000)
+x0 = 10
+
+y = nonlinComplex(x, x0, gamma)
+
+axes[1,0].plot(x, y.real)
+axes[1,0].plot(x, y.imag)
+
+dyr, dyi, _, _ = nonlinComplexDxDx0Split(x, x0, gamma)
+
+axes[1,1].plot(x, dyr)
+axes[1,1].plot(x, dyi)
+
+axes[0,0].set_xlabel("x")
+axes[0,1].set_xlabel("x")
+axes[1,0].set_xlabel("x")
+axes[1,1].set_xlabel("x")
+
+axes[0,0].set_ylabel("xL(x)")
+axes[0,1].set_ylabel("d(xL(x))/dx")
+axes[1,0].set_ylabel("xL(x)")
+axes[1,1].set_ylabel("d(xL(x))/dx")
+
+"""x = 0
 x0 = np.linspace(-10, 10, 1000)
 
 y = nonlinComplex(x, x0, gamma)
@@ -171,7 +194,7 @@ y = nonlinComplex(x, x0, gamma)
 axes[1,0].plot(x, y.real)
 axes[1,0].plot(x, y.imag)
 
-dy = nonlinDx0Complex(x, x0, gamma)
+dyr, dyi, _, _ = nonlinComplexDxDx0Split(x, x0, gamma)
 
 axes[1,1].plot(x, dy.real)
 axes[1,1].plot(x, dy.imag)
@@ -182,9 +205,9 @@ axes[1,0].set_xlabel(r'$x_{0}$')
 axes[1,1].set_xlabel(r'$x_{0}$')
 
 axes[0,0].set_ylabel("L(x)")
-ax2.set_ylabel("Derivative of L(x)")
+ax2.set_ylabel("Derivative of L(x)")"""
 
-ax1.legend(['Re(L(x))', 'Im(L(x))'])
+axes[0,0].legend(['Re(L(x))', 'Im(L(x))'])
 
 plt.tight_layout()
 plt.show()

@@ -84,17 +84,17 @@ def conv_net(x, weights, biases):
 # Store layers weight & bias
 weights = {
     # 5x5 conv, 1 input, 32 outputs
-    'wc1': tf.Variable(tf.random_normal([7, 7, 1, 16])),
+    'wc1': tf.Variable(tf.random_normal([5, 5, 1, 16])),
     # 2x2 conv, 32 inputs, 32 outputs
     'wp1': tf.Variable(tf.random_normal([2, 2, 16, 16])),
     # 5x5 conv, 32 inputs, 64 outputs
-    'wc2': tf.Variable(tf.random_normal([7, 7, 16, 32])),
+    'wc2': tf.Variable(tf.random_normal([5, 5, 16, 32])),
     # 2x2 conv, 64 inputs, 64 outputs
     'wp2': tf.Variable(tf.random_normal([2, 2, 32, 32])),
     # fully connected, 7*7*64 inputs, 1024 outputs
-    'wd1': tf.Variable(tf.random_normal([7*7*32, 512])),
+    'wd1': tf.Variable(tf.random_normal([7*7*32, 256])),
     # 1024 inputs, 10 outputs (class prediction)
-    'out': tf.Variable(tf.random_normal([512, num_classes]))
+    'out': tf.Variable(tf.random_normal([256, num_classes]))
 }
 
 bias_var = 5
@@ -104,7 +104,7 @@ biases = {
     'bp1': tf.Variable(tf.random_uniform([16], minval=-bias_var, maxval=bias_var)),
     'bc2': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
     'bp2': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
-    'bd1': tf.Variable(tf.random_uniform([512], minval=-bias_var, maxval=bias_var)),
+    'bd1': tf.Variable(tf.random_uniform([256], minval=-bias_var, maxval=bias_var)),
     'out': tf.Variable(tf.random_uniform([num_classes], minval=-bias_var, maxval=bias_var))
 }
 
@@ -208,7 +208,7 @@ test_accuracy = sess.run(accuracy, feed_dict={X: mnist.test.images[:512],
 
 print("Testing Accuracy:", test_accuracy)
     
-save_path = 'mnist_16f7_p2_32f7_p2_1f512_g4_lr_01_bias10b_try1.pkl'
+save_path = 'mnist_16f5_p2_32f5_p2_1f256_g4_lr_01_bias10b_try0.pkl'
 to_save = [training_loss, validation_loss, training_acc, validation_acc, test_accuracy]
 
 with open(save_path, 'wb') as file:
