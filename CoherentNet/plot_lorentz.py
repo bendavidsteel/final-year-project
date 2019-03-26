@@ -146,7 +146,7 @@ ax2.set_ylabel("Derivative of L(x)")
 
 ax1.legend(['Re(L(x))', 'Im(L(x))'])"""
 
-fig, axes = plt.subplots(nrows=2, ncols=2)
+"""fig, axes = plt.subplots(nrows=2, ncols=2)
 
 gamma = 1
 
@@ -184,7 +184,7 @@ axes[1,1].set_xlabel("x")
 axes[0,0].set_ylabel("xL(x)")
 axes[0,1].set_ylabel("d(xL(x))/dx")
 axes[1,0].set_ylabel("xL(x)")
-axes[1,1].set_ylabel("d(xL(x))/dx")
+axes[1,1].set_ylabel("d(xL(x))/dx")"""
 
 """x = 0
 x0 = np.linspace(-10, 10, 1000)
@@ -205,9 +205,25 @@ axes[1,0].set_xlabel(r'$x_{0}$')
 axes[1,1].set_xlabel(r'$x_{0}$')
 
 axes[0,0].set_ylabel("L(x)")
-ax2.set_ylabel("Derivative of L(x)")"""
+ax2.set_ylabel("Derivative of L(x)")
 
-axes[0,0].legend(['Re(L(x))', 'Im(L(x))'])
+axes[0,0].legend(['Re(L(x))', 'Im(L(x))'])"""
+
+# np.abs(t) = np.abs(t_p)
+# np.abs(p)**2 + np.abs(t)**2 = 1
+
+def transmission(f):
+    p = 1
+    t = 1
+    t_p = 1
+    delta = 1
+    T = (t_p * t * np.exp(1j * 2 * np.pi * delta / f)) / (1 - (p ** 2) * np.exp(1j * 4 * np.pi * delta / f))
+    return T
+
+f = np.linspace(-5, 10, 1000)
+t = transmission(f)
+
+plt.plot(f, t)
 
 plt.tight_layout()
 plt.show()

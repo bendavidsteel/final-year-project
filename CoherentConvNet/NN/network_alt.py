@@ -18,7 +18,7 @@ from NN.utils import *
 import numpy as np
 import pickle
 import copy
-from tqdm import tqdm
+# from tqdm import tqdm
 #####################################################
 ############### Building The Network ################
 #####################################################
@@ -465,6 +465,8 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
             if progress_bar:
                 t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
+            else:
+                print("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
 
             nl1_r5.append(np.percentile(nl1.real, 5))
             nl1_r25.append(np.percentile(nl1.real, 25))

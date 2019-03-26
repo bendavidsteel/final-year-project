@@ -38,6 +38,53 @@ def extract_labels(filename, num_images):
         labels = np.frombuffer(buf, dtype=np.uint8).astype(np.int64)
     return labels
 
+def extract_semeion_digit_dataset():
+	'''
+	Extract semeion handwritten digit dataset
+	'''
+	with open('semeion_shuffled.data', 'r') as f:
+
+		digits = []
+		labels = []
+
+		for line in f:
+			data = line.split(' ')
+
+			digit_str = data[:256]
+			label_str = data[256:266]
+			
+			digit = np.asarray([float(x) for x in digit_str])
+			label_arr = np.asarray([int(x) for x in label_str])
+
+			digits.append(digit)
+			
+			label = 0
+
+			for i in range(len(label_arr)):
+				if label_arr[i] == 1:
+					label = i
+
+			labels.append(label)
+
+	return np.asarray(digits), np.asarray(labels).reshape((-1,1))
+
+def semeion_training_set():
+	digits, labels = extract_semeion_digit_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	return np.concatenate((digits[::5], digits[1::5], digits[2::5])), np.concatenate((labels[::5], labels[1::5], labels[2::5]))
+
+def semeion_validation_set():
+	digits, labels = extract_semeion_digit_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return digits[3::5], labels[3::5]
+
+def semeion_testing_set():
+	digits, labels = extract_semeion_digit_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return digits[4::5], labels[4::5]
+
 def extract_iris_dataset():
 	'''
 	Extract iris dataset
@@ -175,7 +222,7 @@ def initializeWeight(size):
     return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
 def initializeBias(size):
-	var = 1
+	var = 4
 	# return np.random.uniform(low = 0, high = var, size = size)
 	return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
@@ -203,26 +250,29 @@ def predict(image, label, params, gamma):
 	'''
 	Make predictions with trained filters/weights. 
 	'''
-	[f1, f2, w3, w4, b1, b2, b3, b4] = params
+	[f1, f2, f3, w4, w5, b1, b2, b3, b4, b5] = params
 
 	conv1 = convolutionComplex(image, f1) # convolution operation
 	nonlin1 = nonlinComplex(conv1, b1.reshape(-1, 1, 1), gamma) # pass through Lorentzian non-linearity
 
 	conv2 = convolutionComplex(nonlin1, f2) # second convolution operation
-	pooled = nonlinComplex(conv2, b2.reshape(-1, 1, 1), gamma) # pass through Lorentzian non-linearity
+	nonlin2 = nonlinComplex(conv2, b2.reshape(-1, 1, 1), gamma) # pass through Lorentzian non-linearity
+
+	conv3 = convolutionComplex(nonlin2, f3, s=2) # second convolution operation
+	pooled = nonlinComplex(conv3, b3.reshape(-1, 1, 1), gamma) # pass through Lorentzian non-linearity
 
 	(nf2, dim2, _) = pooled.shape
 	fc = pooled.reshape((nf2 * dim2 * dim2, 1)) # flatten pooled layer
 
-	z1 = w3.dot(fc) # second convolution operation
-	a1 = nonlinComplex(z1, b3.reshape(-1,1), gamma) # pass through Lorentzian non-linearity
+	z1 = w4.dot(fc) # second convolution operation
+	a1 = nonlinComplex(z1, b4.reshape(-1,1), gamma) # pass through Lorentzian non-linearity
 
 	# z2 = np.matmul(w4, a1) # first dense layer
 	# a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
 
 	# out = np.matmul(w5, a2) + b5.reshape(1,-1,1) # second dense layer
 
-	out = w4.dot(a1) + b4.reshape(-1,1)
+	out = w5.dot(a1) + b5.reshape(-1,1)
 
 	measured = np.abs(out)
 

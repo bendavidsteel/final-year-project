@@ -12,39 +12,47 @@ Date: 05/02/19
 '''
 
 from NN.forward import *
+from NN.backward import *
 from NN.utils import *
 
 import numpy as np
 import pickle
 import copy
-from tqdm import tqdm
+# from tqdm import tqdm
 #####################################################
 ############### Building The Network ################
 #####################################################
 
-def network(batch, label, params, gamma, validation = False):
+def conv(image, label, params, gamma, validation = False):
     
     # [f1, f2, w3, w4, w5, b1, b2, b3, b4, b5] = params 
-    [w1, w2, w3, b1, b2, b3] = params
-
-    if type(gamma) is not list:
-        gamma = [gamma, gamma]
+    [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5] = params
 
     ################################################
     ############## Forward Operation ###############
     ################################################
-    z1 = np.matmul(w1, batch) # convolution operation
-    a1 = nonlinComplex(z1, b1.reshape(1,-1,1), gamma[0]) # pass through Lorentzian non-linearity
+
+    conv1 = convolutionComplexBatch(image, f1) # convolution operation
+    nonlin1 = nonlinComplex(conv1, b1.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
     
-    z2 = np.matmul(w2, a1) # second convolution operation
-    a2 = nonlinComplex(z2, b2.reshape(1,-1,1), gamma[1]) # pass through Lorentzian non-linearity
+    conv2 = convolutionComplexBatch(nonlin1, f2) # second convolution operation
+    nonlin2 = nonlinComplex(conv2, b2.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
+
+    conv3 = convolutionComplexBatch(nonlin2, f3, s=2) # second convolution operation
+    pooled = nonlinComplex(conv3, b3.reshape(1, -1, 1, 1), gamma) # pass through Lorentzian non-linearity
+    
+    (batch_size, nf2, dim2, _) = pooled.shape
+    fc = pooled.reshape((batch_size, nf2 * dim2 * dim2, 1)) # flatten pooled layer
+
+    z1 = np.matmul(w4, fc) # second convolution operation
+    a1 = nonlinComplex(z1, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
 
     # z2 = np.matmul(w4, a1) # first dense layer
     # a2 = lorentz(z2, b4.reshape(1,-1,1), gamma) # pass through Lorentzian non-linearity
     
     # out = np.matmul(w5, a2) + b5.reshape(1,-1,1) # second dense layer
 
-    out = np.matmul(w3, a2) + b3.reshape(1,-1,1)
+    out = np.matmul(w5, a1) + b5.reshape(1,-1,1)
 
     measured = np.real(out)**2 + np.imag(out)**2
 
@@ -80,157 +88,166 @@ def network(batch, label, params, gamma, validation = False):
 
     dout = 2 * out
 
-    outmeasured = dout * dmeasured.real
+    outmeasured = dout * dmeasured
 
-    db3 = outmeasured
-    dw3 = outmeasured * np.transpose(a2, (0,2,1)).conj()
+    db5 = dout
+    dw5 = outmeasured * np.transpose(a1, (0,2,1)).conj()
 
-    da2 = np.matmul(w3.conj().T, outmeasured)
+    da1 = np.matmul(w5.conj().T, outmeasured)
 
-    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(z2, b2.reshape(1,-1,1), gamma[1])
-
-    az = da2.real * dzr + 1j * da2.imag * dzi
-
-    db2 = da2.real * dbr + 1j * da2.imag * dbi
-    dw2 = az * np.transpose(a1, (0,2,1)).conj()
-
-    da1 = np.matmul(w2.conj().T, az)
-
-    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(z1, b1.reshape(1,-1,1), gamma[0])
+    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(z1, b4.reshape(1,-1,1), gamma)
 
     az = da1.real * dzr + 1j * da1.imag * dzi
 
-    db1 = da1.real * dbr + 1j * da1.imag * dbi
-    dw1 = az * np.transpose(batch, (0,2,1)).conj()
+    db4 = da1.real * dbr + 1j * da1.imag * dbi
+    dw4 = az * np.transpose(fc, (0,2,1)).conj()
+
+    dfc = np.matmul(w4.conj().T, az)
+    dpool = dfc.reshape(pooled.shape)
+
+    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(conv3, b3.reshape(1,-1,1,1), gamma)
+    dconv3 = dpool.real * dzr + 1j * dpool.imag * dzi
+    db3 = np.mean(dpool.real * dbr + 1j * dpool.imag * dbi, axis=(2,3))
+    dnonlin2, df3 = convolutionComplexBackwardBatch(dconv3, conv2, f3, s=2) # backpropagate previous gradient through second convolutional layer.
+
+    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(conv2, b2.reshape(1,-1,1,1), gamma)
+    dconv2 = dnonlin2.real * dzr + 1j * dnonlin2.imag * dzi
+    db2 = np.mean(dnonlin2.real * dbr + 1j * dnonlin2.imag * dbi, axis=(2,3))
+    dnonlin1, df2 = convolutionComplexBackwardBatch(dconv2, conv1, f2) # backpropagate previous gradient through second convolutional layer.
     
-    dw1 = np.mean(dw1, axis=0)
-    dw2 = np.mean(dw2, axis=0)
-    dw3 = np.mean(dw3, axis=0)
-    # dw5 = np.mean(dw5, axis=0)
-    db1 = np.mean(db1, axis=0)
-    db2 = np.mean(db2, axis=0)
-    db3 = np.mean(db3, axis=0)
-    # db4 = np.mean(db4, axis=0)
-    # db5 = np.mean(db5, axis=0)
+    dzr, dzi, dbr, dbi = nonlinComplexDxDx0Split(conv1, b1.reshape(1,-1,1,1), gamma)
+    dconv1 = dnonlin1.real * dzr + 1j * dnonlin1.imag * dzi
+    db1 = np.mean(dnonlin1.real * dbr + 1j * dnonlin1.imag * dbi, axis=(2,3))
+    df1 = convolutionComplexBackwardBatch(dconv1, image, f1, final=True) # backpropagate previous gradient through second convolutional layer.
+
+    df1 = np.mean(df1, axis=0)
+    df2 = np.mean(df2, axis=0)
+    df3 = np.mean(df3, axis=0)
+    dw4 = np.mean(dw4, axis=0)
+    dw5 = np.mean(dw5, axis=0)
+    db1 = np.mean(db1, axis=0).reshape(-1,1)
+    db2 = np.mean(db2, axis=0).reshape(-1,1)
+    db3 = np.mean(db3, axis=0).reshape(-1,1)
+    db4 = np.mean(db4, axis=0)
+    db5 = np.mean(db5, axis=0)
 
     # grads = [df1, df2, dw3, dw4, dw5, db1, db2, db3, db4, db5] 
     
     # return grads, loss, nonlin1, pooled, a1, a2
 
-    grads = [dw1, dw2, dw3, db1, db2, db3]
+    grads = [df1, df2, df3, dw4, dw5, db1, db2, db3, db4, db5]
 
-    return grads, loss, a1, a2
+    return grads, loss, nonlin1, nonlin2, pooled, a1
 
 #####################################################
 ################### Optimization ####################
 #####################################################
 
-def adamGD(batch, num_classes, lr, dim, beta1, beta2, params, cost, gamma):
+def adamGD(batch, num_classes, lr, dim, n_c, beta1, beta2, params, cost, gamma):
     '''
     update the parameters through Adam gradient descnet.
     '''
-    [w1, w2, w3, b1, b2, b3] = params
+    [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5] = params
     
     X = batch[:,0:-1] # get batch inputs
-    X = X.reshape(-1, dim, 1)
+    X = X.reshape(len(batch), n_c, dim, dim)
     Y = batch[:,-1] # get batch labels
     
     cost_ = 0
     batch_size = len(batch)
     
     # initialize gradients and momentum,RMS params
-    dw1 = np.zeros(w1.shape)
-    dw2 = np.zeros(w2.shape)
-    dw3 = np.zeros(w3.shape)
-    # dw4 = np.zeros(w4.shape)
-    # dw5 = np.zeros(w5.shape)
+    df1 = np.zeros(f1.shape)
+    df2 = np.zeros(f2.shape)
+    df3 = np.zeros(f3.shape)
+    dw4 = np.zeros(w4.shape)
+    dw5 = np.zeros(w5.shape)
     db1 = np.zeros(b1.shape)
     db2 = np.zeros(b2.shape)
     db3 = np.zeros(b3.shape)
-    # db4 = np.zeros(b4.shape)
-    # db5 = np.zeros(b5.shape)
+    db4 = np.zeros(b4.shape)
+    db5 = np.zeros(b5.shape)
     
-    v1 = np.zeros(w1.shape)
-    v2 = np.zeros(w2.shape)
-    v3 = np.zeros(w3.shape)
-    # v4 = np.zeros(w4.shape)
-    # v5 = np.zeros(w5.shape)
+    v1 = np.zeros(f1.shape)
+    v2 = np.zeros(f2.shape)
+    v3 = np.zeros(f3.shape)
+    v4 = np.zeros(w4.shape)
+    v5 = np.zeros(w5.shape)
     bv1 = np.zeros(b1.shape)
     bv2 = np.zeros(b2.shape)
     bv3 = np.zeros(b3.shape)
-    # bv4 = np.zeros(b4.shape)
-    # bv5 = np.zeros(b5.shape)
+    bv4 = np.zeros(b4.shape)
+    bv5 = np.zeros(b5.shape)
     
-    s1 = np.zeros(w1.shape)
-    s2 = np.zeros(w2.shape)
-    s3 = np.zeros(w3.shape)
-    # s4 = np.zeros(w4.shape)
-    # s5 = np.zeros(w5.shape)
+    s1 = np.zeros(f1.shape)
+    s2 = np.zeros(f2.shape)
+    s3 = np.zeros(f3.shape)
+    s4 = np.zeros(w4.shape)
+    s5 = np.zeros(w5.shape)
     bs1 = np.zeros(b1.shape)
     bs2 = np.zeros(b2.shape)
     bs3 = np.zeros(b3.shape)
-    # bs4 = np.zeros(b4.shape)
-    # bs5 = np.zeros(b5.shape)
+    bs4 = np.zeros(b4.shape)
+    bs5 = np.zeros(b5.shape)
         
     x = X
     y = np.eye(num_classes)[Y.astype(int)].reshape(batch_size, num_classes, 1) # convert label to one-hot
     
     # Collect Gradients for training example
 
-    grads, loss, nl1, nl2 = network(x, y, params, gamma)
-    [dw1, dw2, dw3, db1, db2, db3] = grads
+    grads, loss, nl1, nl2, nl3, nl4 = conv(x, y, params, gamma)
+    [df1, df2, df3, dw4, dw5, db1, db2, db3, db4, db5] = grads
 
     cost_ = loss
 
     # Parameter Update  
         
-    v1 = beta1*v1 + (1-beta1)*dw1 # momentum update
-    s1 = beta2*s1 + (1-beta2)*(dw1)**2 # RMSProp update
-    w1 -= lr * v1/np.sqrt(s1+1e-7) # combine momentum and RMSProp to perform update with Adam
+    v1 = beta1*v1 + (1-beta1)*df1 # momentum update
+    s1 = beta2*s1 + (1-beta2)*(df1)**2 # RMSProp update
+    f1 -= lr * v1/np.sqrt(s1+1e-7) # combine momentum and RMSProp to perform update with Adam
     
     bv1 = beta1*bv1 + (1-beta1)*db1
     bs1 = beta2*bs1 + (1-beta2)*(db1)**2
     b1 -= lr * bv1/np.sqrt(bs1+1e-7)
    
-    v2 = beta1*v2 + (1-beta1)*dw2
-    s2 = beta2*s2 + (1-beta2)*(dw2)**2
-    w2 -= lr * v2/np.sqrt(s2+1e-7)
+    v2 = beta1*v2 + (1-beta1)*df2
+    s2 = beta2*s2 + (1-beta2)*(df2)**2
+    f2 -= lr * v2/np.sqrt(s2+1e-7)
                        
     bv2 = beta1*bv2 + (1-beta1) * db2
     bs2 = beta2*bs2 + (1-beta2)*(db2)**2
     b2 -= lr * bv2/np.sqrt(bs2+1e-7)
     
-    v3 = beta1*v3 + (1-beta1) * dw3
-    s3 = beta2*s3 + (1-beta2)*(dw3)**2
-    w3 -= lr * v3/np.sqrt(s3+1e-7)
+    v3 = beta1*v3 + (1-beta1) * df3
+    s3 = beta2*s3 + (1-beta2)*(df3)**2
+    f3 -= lr * v3/np.sqrt(s3+1e-7)
     
     bv3 = beta1*bv3 + (1-beta1) * db3
     bs3 = beta2*bs3 + (1-beta2)*(db3)**2
     b3 -= lr * bv3/np.sqrt(bs3+1e-7)
     
-    # v4 = beta1*v4 + (1-beta1) * dw4
-    # s4 = beta2*s4 + (1-beta2)*(dw4)**2
-    # w4 -= lr * v4 / np.sqrt(s4+1e-7)
+    v4 = beta1*v4 + (1-beta1) * dw4
+    s4 = beta2*s4 + (1-beta2)*(dw4)**2
+    w4 -= lr * v4 / np.sqrt(s4+1e-7)
     
-    # bv4 = beta1*bv4 + (1-beta1)*db4
-    # bs4 = beta2*bs4 + (1-beta2)*(db4)**2
-    # b4 -= lr * bv4 / np.sqrt(bs4+1e-7)
+    bv4 = beta1*bv4 + (1-beta1)*db4
+    bs4 = beta2*bs4 + (1-beta2)*(db4)**2
+    b4 -= lr * bv4 / np.sqrt(bs4+1e-7)
 
-    # v5 = beta1*v5 + (1-beta1) * dw5/batch_size
-    # s5 = beta2*s5 + (1-beta2)*(dw5/batch_size)**2
-    # w5 -= lr * v5 / np.sqrt(s5+1e-7)
+    v5 = beta1*v5 + (1-beta1) * dw5/batch_size
+    s5 = beta2*s5 + (1-beta2)*(dw5/batch_size)**2
+    w5 -= lr * v5 / np.sqrt(s5+1e-7)
     
-    # bv5 = beta1*bv5 + (1-beta1)*db5/batch_size
-    # bs5 = beta2*bs5 + (1-beta2)*(db5/batch_size)**2
-    # b5 -= lr * bv5 / np.sqrt(bs5+1e-7)
+    bv5 = beta1*bv5 + (1-beta1)*db5/batch_size
+    bs5 = beta2*bs5 + (1-beta2)*(db5/batch_size)**2
+    b5 -= lr * bv5 / np.sqrt(bs5+1e-7)
     
 
     cost.append(cost_)
 
-    params = [w1, w2, w3, b1, b2, b3]
+    params = [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5]
     
-    # return params, cost, nl1, nl2, nl3, nl4
-    return params, cost, nl1, nl2
+    return params, cost, nl1, nl2, nl3, nl4
 
 
 def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
@@ -313,40 +330,44 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
-          data_dim = 13, gamma = 2/np.pi, layers = [32,32], batch_size = 64, num_epochs = 5000,
+def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
+          img_dim = 16, img_depth = 1, f = 5, p = 2, num_filt1 = 8, num_filt2 = 8, num_filt3 = 8, gamma = 2/np.pi, layer = 128, batch_size = 256, max_epochs = 5000,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
-    X, y_dash = heart_training_set()
-    X_val, y_dash_val = heart_validation_set()
+    X, y_dash = semeion_training_set()
+    X_val, y_dash_val = semeion_validation_set()
 
-    train_data = norm_stack_shuffle(X,y_dash)
+    train_data = norm_stack_shuffle(X,y_dash, by_column=False)
 
-    val_data = norm_stack_shuffle(X_val,y_dash_val)
+    val_data = norm_stack_shuffle(X_val,y_dash_val, by_column=False)
 
-    hidden_layer1 = layers[0]
-    hidden_layer2 = layers[1]
+    num_conv_layers = 2
+    flattened_size = (((img_dim - num_conv_layers*(f - 1))**2) * num_filt3) // p**2
+
+    hidden_layer = layer
 
     if not continue_training:
         ## Initializing all the parameters
-        w1, w2, w3 = (hidden_layer1, data_dim), (hidden_layer2, hidden_layer1), (num_classes, hidden_layer2)
+        f1, f2, f3 = (num_filt1, img_depth, f, f), (num_filt2, num_filt1, f, f), (num_filt3, num_filt2, p, p)
+        w4, w5 = (hidden_layer, flattened_size), (num_classes, hidden_layer)
 
-        w1 = initializeWeight(w1)
-        w2 = initializeWeight(w2)
-        w3 = initializeWeight(w3)
-        # w4 = initializeWeight(w4)
-        # w5 = initializeWeight(w5)
+        f1 = initializeFilter(f1)
+        f2 = initializeFilter(f2)
+        f3 = initializeFilter(f3)
+        w4 = initializeWeight(w4)
+        w5 = initializeWeight(w5)
 
-        b1, b2, b3 = (hidden_layer1, 1), (hidden_layer2, 1), (num_classes, 1)
+        b1, b2, b3 = (num_filt1, 1), (num_filt2, 1), (num_filt3, 1)
+        b4, b5 = (hidden_layer, 1), (num_classes, 1)
 
         b1 = initializeBias(b1)
         b2 = initializeBias(b2)
         b3 = initializeBias(b3)
-        # b4 = initializeBias(b4)
-        # b5 = initializeBias(b5)
+        b4 = initializeBias(b4)
+        b5 = initializeBias(b5)
 
-        params = [w1, w2, w3, b1, b2, b3]
+        params = [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5]
 
         cost = []
         cost_val = []
@@ -356,6 +377,7 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
     nl1_l = []
     nl2_l = []
+    nl3_l = []
 
     nl1_r5 = []
     nl1_r25 = []
@@ -369,6 +391,18 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
     nl2_r75 = []
     nl2_r95 = []
 
+    nl3_r5 = []
+    nl3_r25 = []
+    nl3_r50 = []
+    nl3_r75 = []
+    nl3_r95 = []
+
+    nl4_r5 = []
+    nl4_r25 = []
+    nl4_r50 = []
+    nl4_r75 = []
+    nl4_r95 = []
+
     nl1_i5 = []
     nl1_i25 = []
     nl1_i50 = []
@@ -381,29 +415,44 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
     nl2_i75 = []
     nl2_i95 = []
 
+    nl3_i5 = []
+    nl3_i25 = []
+    nl3_i50 = []
+    nl3_i75 = []
+    nl3_i95 = []
+
+    nl4_i5 = []
+    nl4_i25 = []
+    nl4_i50 = []
+    nl4_i75 = []
+    nl4_i95 = []
+
     print("LR: "+str(lr)+", Batch Size: "+str(batch_size)+", Gamma: "+str(gamma))
 
     if progress_bar:
-        t = tqdm(range(num_epochs))
+        t = tqdm(range(max_epochs))
     else:
-        t = range(num_epochs)
+        t = range(max_epochs)
 
     # checking for early stopping
     min_val = float('inf')
-    PATIENCE = 300
+    PATIENCE = 20
     num_since_best = 0
     num_epochs = 0
 
     for epoch in t:
 
         # calculate loss on validation set
-        X_val = val_data[:,0:-1] # get batch inputs
-        x_val = X_val.reshape(-1, data_dim, 1)
+        np.random.shuffle(val_data)
+        val_batch = val_data[:batch_size]
 
-        Y_val = val_data[:,-1] # get batch labels
+        X_val = val_batch[:,0:-1] # get batch inputs
+        x_val = X_val.reshape(-1, img_depth, img_dim, img_dim)
+
+        Y_val = val_batch[:,-1] # get batch labels
         y_val = np.eye(num_classes)[Y_val.astype(int)].reshape(-1, num_classes, 1) # convert label to one-hot
 
-        c_val = network(x_val, y_val, params, gamma, validation=True)
+        c_val = conv(x_val, y_val, params, gamma, validation=True)
 
         if c_val < min_val:
             min_val = c_val
@@ -423,11 +472,12 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
         batches = [train_data[k:k + batch_size] for k in range(0, train_data.shape[0], batch_size)]
 
         for batch in batches:
-            # params, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
-            params, cost, nl1, nl2 = adamGD(batch, num_classes, lr, data_dim, beta1, beta2, params, cost, gamma)
+            params, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, params, cost, gamma)
 
             if progress_bar:
                 t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
+            else:
+                print("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
 
             nl1_r5.append(np.percentile(nl1.real, 5))
             nl1_r25.append(np.percentile(nl1.real, 25))
@@ -441,6 +491,18 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
             nl2_r75.append(np.percentile(nl2.real, 75))
             nl2_r95.append(np.percentile(nl2.real, 95))
 
+            nl3_r5.append(np.percentile(nl3.real, 5))
+            nl3_r25.append(np.percentile(nl3.real, 25))
+            nl3_r50.append(np.percentile(nl3.real, 50))
+            nl3_r75.append(np.percentile(nl3.real, 75))
+            nl3_r95.append(np.percentile(nl3.real, 95))
+
+            nl4_r5.append(np.percentile(nl4.real, 5))
+            nl4_r25.append(np.percentile(nl4.real, 25))
+            nl4_r50.append(np.percentile(nl4.real, 50))
+            nl4_r75.append(np.percentile(nl4.real, 75))
+            nl4_r95.append(np.percentile(nl4.real, 95))
+
             nl1_i5.append(np.percentile(nl1.imag, 5))
             nl1_i25.append(np.percentile(nl1.imag, 25))
             nl1_i50.append(np.percentile(nl1.imag, 50))
@@ -453,7 +515,19 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
             nl2_i75.append(np.percentile(nl2.imag, 75))
             nl2_i95.append(np.percentile(nl2.imag, 95))
 
-    final_layer = [nl1, nl2]
+            nl3_i5.append(np.percentile(nl3.imag, 5))
+            nl3_i25.append(np.percentile(nl3.imag, 25))
+            nl3_i50.append(np.percentile(nl3.imag, 50))
+            nl3_i75.append(np.percentile(nl3.imag, 75))
+            nl3_i95.append(np.percentile(nl3.imag, 95))
+
+            nl4_i5.append(np.percentile(nl4.imag, 5))
+            nl4_i25.append(np.percentile(nl4.imag, 25))
+            nl4_i50.append(np.percentile(nl4.imag, 50))
+            nl4_i75.append(np.percentile(nl4.imag, 75))
+            nl4_i95.append(np.percentile(nl4.imag, 95))
+
+    final_layer = [nl1, nl2, nl3, nl4]
 
     # layer_q5 = [nl1_q5, nl2_q5]
     # layer_q25 = [nl1_q25, nl2_q25]
@@ -463,10 +537,12 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
     nl1_p = [nl1_r5, nl1_r25, nl1_r50, nl1_r75, nl1_r95, nl1_i5, nl1_i25, nl1_i50, nl1_i75, nl1_i95]
     nl2_p = [nl2_r5, nl2_r25, nl2_r50, nl2_r75, nl2_r95, nl2_i5, nl2_i25, nl2_i50, nl2_i75, nl2_i95]
+    nl3_p = [nl3_r5, nl3_r25, nl3_r50, nl3_r75, nl3_r95, nl3_i5, nl3_i25, nl3_i50, nl3_i75, nl3_i95]
+    nl4_p = [nl4_r5, nl4_r25, nl4_r50, nl4_r75, nl4_r95, nl4_i5, nl4_i25, nl4_i50, nl4_i75, nl4_i95]
 
     if save:    
         # to_save = [params, cost, cost_val, nl1_l, nl2_l]
-        to_save = [best_params, cost, cost_val, nl1_p, nl2_p, final_layer]
+        to_save = [best_params, cost, cost_val, nl1_p, nl2_p, nl3_p, nl4_p, final_layer]
         
         with open(save_path, 'wb') as file:
             pickle.dump(to_save, file)

@@ -2,6 +2,8 @@
 *.pyc
 *.dat
 *.asv
+*.xml
+*.iml
 Output/
 .vscode/
 *.pkl
