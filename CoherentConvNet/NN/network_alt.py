@@ -51,7 +51,7 @@ def conv(image, label, params, gamma, validation = False):
 
     out = np.matmul(w4, a1) + b4.reshape(1,-1,1)
 
-    measured = np.abs(out)
+    measured = np.real(out)**2 + np.imag(out)**2
 
     probs = softmaxBatch(measured) # predict class probabilities with the softmax activation function
     
@@ -69,7 +69,7 @@ def conv(image, label, params, gamma, validation = False):
     ################################################
     ############# Backward Operation ###############
     ################################################
-    dout = probs - label # derivative of loss due to cross entropy and softmax
+    dmeasured = probs - label # derivative of loss due to cross entropy and softmax
 
     # dw5 = dout * np.transpose(a2, (0,2,1)) # loss gradient of final dense layer weights
     # db5 = dout # loss gradient of final dense layer biases
@@ -83,8 +83,7 @@ def conv(image, label, params, gamma, validation = False):
     
     # da1 = np.matmul(w4.T, da2 * dl4) # loss gradients of fully-connected layer
 
-    out[out == 0] = 0.00001 + 0j # avoid divide by zero errors
-    dmeasured = out / np.abs(out)
+    dout = 2 * out
 
     outmeasured = dout * dmeasured
 
