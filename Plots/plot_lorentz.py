@@ -1,8 +1,9 @@
-from NN.forward import *
+from forward import *
 import numpy as np 
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from mpl_toolkits.mplot3d import axes3d
+from matplotlib.ticker import FormatStrFormatter
 
 """fig, ((ax1, ax3), (ax5, ax7)) = plt.subplots(nrows=2, ncols=2)
 
@@ -65,59 +66,59 @@ ax8.set_ylabel("xL(x)", color='r')
 ax7.tick_params(axis='y', labelcolor='b')
 ax8.tick_params(axis='y', labelcolor='r')"""
 
-"""fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
+# fig, (ax1, ax2, ax3) = plt.subplots(nrows=1, ncols=3)
+fig, ax1 = plt.subplots(nrows=1, ncols=1, figsize=(4,4))
 
 x = np.linspace(-10, 10, 1000)
 x0 = 0
 
 gamma = 1
-ax1.plot(x, lorentz(x, x0, gamma))
-ax2.plot(x, lorentzDx(x, x0, gamma))
+# ax1.plot(x, lorentz(x, x0, gamma))
+ax1.plot(x, lorentzDx(x, x0, gamma))
 
 gamma = 2
-ax1.plot(x, lorentz(x, x0, gamma))
-ax2.plot(x, lorentzDx(x, x0, gamma))
+# ax1.plot(x, lorentz(x, x0, gamma))
+ax1.plot(x, lorentzDx(x, x0, gamma))
 
 gamma = 5
-ax1.plot(x, lorentz(x, x0, gamma))
-ax2.plot(x, lorentzDx(x, x0, gamma))
+# ax1.plot(x, lorentz(x, x0, gamma))
+ax1.plot(x, lorentzDx(x, x0, gamma))
 
 gamma = 10
-ax1.plot(x, lorentz(x, x0, gamma))
-ax2.plot(x, lorentzDx(x, x0, gamma))
+# ax1.plot(x, lorentz(x, x0, gamma))
+ax1.plot(x, lorentzDx(x, x0, gamma))
 
+# ax1.set_xlabel("x")
 ax1.set_xlabel("x")
-ax2.set_xlabel("x")
 
-ax1.set_ylabel("L(x)")
-ax2.set_ylabel("Derivative of L(x)")
+# ax1.set_ylabel("L(x)")
+ax1.set_ylabel("L'(x)")
+ax1.yaxis.set_major_formatter(FormatStrFormatter('%.1f'))
 
-ax2.legend([r'$\kappa = 1$', r'$\kappa = 2$', r'$\kappa = 5$', r'$\kappa = 10$'])"""
+ax1.legend([r'$\kappa = 1$', r'$\kappa = 2$', r'$\kappa = 5$', r'$\kappa = 10$'])
 
-"""fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2)
-
-x = np.linspace(-5, 5, 1000)
+"""x = np.linspace(-5, 5, 1000)
 x0 = 0
 gamma = 1
 
 ax1.plot(x, lorentz(x, x0, gamma))
-ax2.plot(x, lorentzDx(x, x0, gamma))
+# ax2.plot(x, lorentzDx(x, x0, gamma))
 
 y = 1/(1 + np.exp(-1*x))
 ax1.plot(x, y)
-ax2.plot(x, y*(1 - y))
+# ax2.plot(x, y*(1 - y))
 
 ax1.plot(x, np.tanh(x))
-ax2.plot(x, 1.0 - np.tanh(x)**2)
+# ax2.plot(x, 1.0 - np.tanh(x)**2)
 
 ax1.plot(x, (x > 0) * x)
-ax2.plot(x, (x > 0) * 1)
+# ax2.plot(x, (x > 0) * 1)
 
 ax1.set_xlabel("x")
-ax2.set_xlabel("x")
+# ax2.set_xlabel("x")
 
-ax1.set_ylabel("L(x)")
-ax2.set_ylabel("Derivative of L(x)")
+ax1.set_ylabel("f(x)")
+# ax2.set_ylabel("Derivative of L(x)")
 
 ax1.set_ylim(-1.2, 1.8)
 
@@ -209,7 +210,7 @@ ax2.set_ylabel("Derivative of L(x)")
 
 axes[0,0].legend(['Re(L(x))', 'Im(L(x))'])"""
 
-# np.abs(t) = np.abs(t_p)
+"""# np.abs(t) = np.abs(t_p)
 # np.abs(p)**2 + np.abs(t)**2 = 1
 
 def transmission(f):
@@ -223,7 +224,7 @@ def transmission(f):
 f = np.linspace(-5, 10, 1000)
 t = transmission(f)
 
-plt.plot(f, t)
+plt.plot(f, t)"""
 
-plt.tight_layout()
+# plt.tight_layout()
 plt.show()

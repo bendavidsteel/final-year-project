@@ -11,7 +11,7 @@ if __name__ == '__main__':
 	fig, axes = plt.subplots(nrows=2, ncols=3)
 
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr001.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias5b.pkl"
+	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias1.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10neg.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -28,10 +28,10 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,0].contourf(x, y, z, 20, vmin=45, vmax=85)
-	axes[0,0].set_xlabel(r'$\kappa$ for First Layer')
-	axes[0,0].set_ylabel(r'$\kappa$ for Second Layer')
-	axes[0,0].set_title("Bias Initialised [-5, 5]")
+	axes[0,0].contourf(x/2, y/2, z, 20, vmin=45, vmax=85)
+	axes[0,0].set_xlabel(r'First layer $\kappa$')
+	axes[0,0].set_ylabel(r'Second layer $\kappa$')
+	axes[0,0].set_title(r'$x_{0} \in [-1, 1]$')
 
 	z = np.zeros((num_gammas, num_gammas))
 
@@ -40,13 +40,13 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = e_n[i*num_gammas + j]
 
-	im2 = axes[1,0].contourf(x, y, z, 20, vmin=0, vmax=4500)
-	axes[1,0].set_xlabel(r'$\kappa$ for First Layer')
-	axes[1,0].set_ylabel(r'$\kappa$ for Second Layer')
+	axes[1,0].contourf(x/2, y/2, z, 20, vmin=0, vmax=4000, cmap='plasma')
+	axes[1,0].set_xlabel(r'First layer $\kappa$')
+	axes[1,0].set_ylabel(r'Second layer $\kappa$')
 	# axes[1,0].set_title("[16,64]")
 
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr01.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10.pkl"
+	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias5b.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -63,10 +63,10 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	im1 = axes[0,1].contourf(x, y, z, 20, vmin=45, vmax=85)
-	axes[0,1].set_xlabel(r'$\kappa$ for First Layer')
-	axes[0,1].set_ylabel(r'$\kappa$ for Second Layer')
-	axes[0,1].set_title("Bias Initialised [-10, 10]")
+	axes[0,1].contourf(x/2, y/2, z, 20, vmin=45, vmax=85)
+	axes[0,1].set_xlabel(r'First layer $\kappa$')
+	axes[0,1].set_ylabel(r'Second layer $\kappa$')
+	axes[0,1].set_title(r'$x_{0} \in [-5, 5]$')
 
 	z = np.zeros((num_gammas, num_gammas))
 
@@ -75,13 +75,13 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = e_n[i*num_gammas + j]
 
-	axes[1,1].contourf(x, y, z, 20, vmin=0, vmax=4500)
-	axes[1,1].set_xlabel(r'$\kappa$ for First Layer')
-	axes[1,1].set_ylabel(r'$\kappa$ for Second Layer')
+	im2 = axes[1,1].contourf(x/2, y/2, z, 20, vmin=0, vmax=4000, cmap='plasma')
+	axes[1,1].set_xlabel(r'First layer $\kappa$')
+	axes[1,1].set_ylabel(r'Second layer $\kappa$')
 	# axes[1,1].set_title("[64,64]")
 
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr1.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias50b.pkl"
+	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10pos.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -98,10 +98,10 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,2].contourf(x, y, z, 20, vmin=45, vmax=85)
-	axes[0,2].set_xlabel(r'$\kappa$ for First Layer')
-	axes[0,2].set_ylabel(r'$\kappa$ for Second Layer')
-	axes[0,2].set_title("Bias Initialised [-50, 50]")
+	im1 = axes[0,2].contourf(x/2, y/2, z, 20, vmin=45, vmax=85)
+	axes[0,2].set_xlabel(r'First layer $\kappa$')
+	axes[0,2].set_ylabel(r'Second layer $\kappa$')
+	axes[0,2].set_title(r'$x_{0} \in [-10, 10]$')
 
 	z = np.zeros((num_gammas, num_gammas))
 
@@ -110,9 +110,10 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = e_n[i*num_gammas + j]
 
-	axes[1,2].contourf(x, y, z, 20, vmin=0, vmax=4500)
-	axes[1,2].set_xlabel(r'$\kappa$ for First Layer')
-	axes[1,2].set_ylabel(r'$\kappa$ for Second Layer')
+	axes[1,2].contourf(x/2, y/2, z, 20, vmin=0, vmax=4000, cmap='plasma')
+	axes[1,2].set_xlabel(r'First layer $\kappa$')
+	axes[1,2].set_ylabel(r'Second layer $\kappa$')
+	# axes[1,2].set_xticklabels(['0', '1', '2', '3', '4', '5', '6', '7', '8'])
 	# axes[1,2].set_title("[64,64]")
 
 	# plt.tight_layout()
@@ -123,4 +124,5 @@ if __name__ == '__main__':
 	cbar2 = fig.colorbar(im2, ax=[axes[1,0], axes[1,1], axes[1,2]])
 	cbar2.set_label("Epochs to Best Performance")
 
+	# plt.tight_layout()
 	plt.show()

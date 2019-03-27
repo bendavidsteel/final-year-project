@@ -62,12 +62,12 @@ def conv_net(x, weights, biases):
     # Convolution Layer
     conv1 = conv2d(x, weights['wc1'], biases['bc1'])
     # Max Pooling (down-sampling)
-    # conv1 = conv2d(conv1, weights['wp1'], biases['bp1'], strides=2)
+    conv1 = conv2d(conv1, weights['wp1'], biases['bp1'], strides=2)
 
     # Convolution Layer
     conv2 = conv2d(conv1, weights['wc2'], biases['bc2'])
     # Max Pooling (down-sampling)
-    conv2 = conv2d(conv2, weights['wp1'], biases['bp2'], strides=4)
+    conv2 = conv2d(conv2, weights['wp2'], biases['bp2'], strides=2)
 
     # Fully connected layer
     # Reshape conv2 output to fit fully connected layer input
@@ -84,13 +84,13 @@ def conv_net(x, weights, biases):
 # Store layers weight & bias
 weights = {
     # 5x5 conv, 1 input, 32 outputs
-    'wc1': tf.Variable(tf.random_normal([5, 5, 1, 16])),
+    'wc1': tf.Variable(tf.random_normal([9, 9, 1, 16])),
     # 2x2 conv, 32 inputs, 32 outputs
-    # 'wp1': tf.Variable(tf.random_normal([2, 2, 16, 16])),
+    'wp1': tf.Variable(tf.random_normal([2, 2, 16, 16])),
     # 5x5 conv, 32 inputs, 64 outputs
-    'wc2': tf.Variable(tf.random_normal([5, 5, 16, 32])),
+    'wc2': tf.Variable(tf.random_normal([9, 9, 16, 32])),
     # 2x2 conv, 64 inputs, 64 outputs
-    'wp1': tf.Variable(tf.random_normal([4, 4, 32, 32])),
+    'wp2': tf.Variable(tf.random_normal([2, 2, 32, 32])),
     # fully connected, 7*7*64 inputs, 1024 outputs
     'wd1': tf.Variable(tf.random_normal([7*7*32, 256])),
     # 1024 inputs, 10 outputs (class prediction)
@@ -208,7 +208,7 @@ test_accuracy = sess.run(accuracy, feed_dict={X: mnist.test.images[:512],
 
 print("Testing Accuracy:", test_accuracy)
     
-save_path = 'mnist_16f5_32f5_p4_1f512_g4_lr_01_bias10b_try2.pkl'
+save_path = 'mnist_16f9_p2_32f9_p2_1f512_g4_lr_01_bias10b_try2.pkl'
 to_save = [training_loss, validation_loss, training_acc, validation_acc, test_accuracy]
 
 with open(save_path, 'wb') as file:
