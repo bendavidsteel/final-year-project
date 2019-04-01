@@ -23,12 +23,13 @@ learning_rate = 0.01
 num_steps = 5000
 batch_size = 256
 display_step = 10
-gamma = 4
+
 
 # Network Parameters
 num_input = 784 # MNIST data input (img shape: 28*28)
 num_classes = 10 # MNIST total classes (0-9 digits)
-# dropout = 1 # Dropout, probability to keep units
+img_dim = 28
+gamma = 1
 
 # tf Graph input
 X = tf.placeholder(tf.float32, [None, num_input])
@@ -37,10 +38,40 @@ Y = tf.placeholder(tf.float32, [None, num_classes])
 
 
 # Create some wrappers for simplicity
-def conv2d(x, W, strides=1):
-    # Conv2D wrapper, with bias and relu activation
-    x = tf.nn.conv2d(x, W, strides=[1, strides, strides, 1], padding='SAME')
-    return x
+def conv2d(x, W, params):
+    '''
+    Confolves `filt` over `image` using stride `s`
+    '''
+    strides = params['s']
+    n_f = params['n_f']
+    n_c_f = params['n_c']
+    f = params['f']
+    in_dim = params['in_dim']
+    
+    out_dim = in_dim // strides # calculate output dimensions
+    
+    out = tf.zeros((batch_size, n_f,out_dim,out_dim))
+
+    # pad input image
+    padding = (f // 2)
+    x = tf.pad(x, [[0,0], [padding, padding],[padding, padding], [0,0]], "CONSTANT")
+    
+    # convolve the filter over every part of the image, adding the bias at each step. 
+    for curr_b in range(batch_size):
+        for curr_f in range(n_f):
+            curr_y = f // 2
+            out_y = 0
+            while curr_y <= in_dim + (f // 2):
+                curr_x = f // 2
+                out_x = 0
+                while curr_x <= in_dim + (f // 2):
+                    out[curr_b, curr_f, out_y, out_x] = tf.reduce_sum(nonlin(x[curr_b,curr_y:curr_y+f, curr_x:curr_x+f, :], W[:, :, :, curr_f]))
+                    curr_x += strides
+                    out_x += 1
+                curr_y += strides
+                out_y += 1
+        
+    return out
 
 
 def maxpool2d(x, k=2):
@@ -51,61 +82,95 @@ def maxpool2d(x, k=2):
 def nonlin(x, b):
     return tf.truediv(0.5*gamma, tf.add(tf.square(x - b), (0.5*gamma)**2))
 
+def matmul(x, W):
+    # Full Lorentzian equivalent of matrix multiply
+    a = nonlin(tf.transpose(x, perm=[0,2,1]), tf.expand_dims(W, 0))
+    return tf.reduce_sum(a, 2)
+
 # Create model
-def conv_net(x, weights, biases):
+def conv_net(x, weights, biases, params):
     # MNIST data input is a 1-D vector of 784 features (28*28 pixels)
     # Reshape to match picture format [Height x Width x Channel]
     # Tensor input become 4-D: [Batch Size, Height, Width, Channel]
     x = tf.reshape(x, shape=[-1, 28, 28, 1])
 
     # Convolution Layer
-    conv1 = conv2d(x, weights['wc1'])
-    conv1 = nonlin(conv1, biases['bc1'])
+    conv1 = conv2d(x, weights['wc1'], params['c1'])
 
     # Convolution Layer
-    conv2 = conv2d(conv1, weights['wc2'])
-    conv2 = nonlin(conv2, biases['bc2'])
+    conv2 = conv2d(conv1, weights['wc2'], params['c2'])
 
     # Max Pooling (down-sampling)
-    conv3 = conv2d(conv2, weights['wp3'], strides=4)
-    conv3 = nonlin(conv3, biases['bp3'])
+    conv3 = conv2d(conv2, weights['wp3'], params['p3'])
 
     # Fully connected layer
     # Reshape conv2 output to fit fully connected layer input
     fc1 = tf.reshape(conv3, [-1, weights['wd4'].get_shape().as_list()[0]])
-    fc1 = tf.matmul(fc1, weights['wd4'])
-    fc1 = nonlin(fc1, biases['bd4'])
+    fc1 = matmul(fc1, weights['wd4'])
 
     # Output, class prediction
-    out = tf.add(tf.matmul(fc1, weights['wd5']), biases['bd5'])
+    out = matmul(fc1, weights['wd5'])
     return out
 
 # Store layers weight & bias
+
+params = {
+    'c1' : {
+        'n_f' : 16,
+        'n_c' : 1,
+        'f' : 9,
+        's' : 1,
+        'in_dim' : img_dim
+    },
+    'c2' : {
+        'n_f' : 32,
+        'n_c' : 16,
+        'f' : 9,
+        's' : 1,
+        'in_dim' : img_dim
+    },
+    'p3' : {
+        'n_f' : 32,
+        'n_c' : 32,
+        'f' : 4,
+        's' : 4,
+        'in_dim' : img_dim
+    },
+    'd4' : {
+        'n' : 7*7*32,
+        'm' : 256
+    },
+    'd5' : {
+        'n' : 256,
+        'm' : num_classes
+    }
+}
+
 weights = {
     # 5x5 conv, 1 input, 32 outputs
-    'wc1': tf.Variable(tf.random_normal([9, 9, 1, 16])),
+    'wc1': tf.Variable(tf.random_normal([params['c1']['f'], params['c1']['f'], params['c1']['n_c'], params['c1']['n_f']])),
     # 5x5 conv, 32 inputs, 64 outputs
-    'wc2': tf.Variable(tf.random_normal([9, 9, 16, 32])),
+    'wc2': tf.Variable(tf.random_normal([params['c2']['f'], params['c2']['f'], params['c2']['n_c'], params['c2']['n_f']])),
     # 2x2 conv, 64 inputs, 64 outputs
-    'wp3': tf.Variable(tf.random_normal([2, 2, 32, 32])),
+    'wp3': tf.Variable(tf.random_normal([params['p3']['f'], params['p3']['f'], params['p3']['n_c'], params['p3']['n_f']])),
     # fully connected, 7*7*64 inputs, 1024 outputs
-    'wd4': tf.Variable(tf.random_normal([7*7*32, 256])),
+    'wd4': tf.Variable(tf.random_normal([params['d4']['n'], params['d4']['m']])),
     # 1024 inputs, 10 outputs (class prediction)
-    'wd5': tf.Variable(tf.random_normal([256, num_classes]))
+    'wd5': tf.Variable(tf.random_normal([params['d5']['n'], params['d5']['m']]))
 }
 
 bias_var = 5
 
 biases = {
-    'bc1': tf.Variable(tf.random_uniform([16], minval=-bias_var, maxval=bias_var)),
-    'bc2': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
-    'bp3': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
-    'bd4': tf.Variable(tf.random_uniform([256], minval=-bias_var, maxval=bias_var)),
-    'bd5': tf.Variable(tf.random_uniform([num_classes], minval=-bias_var, maxval=bias_var))
+    'bc1': tf.Variable(tf.random_uniform([params['c1']['n_f']], minval=-bias_var, maxval=bias_var)),
+    'bc2': tf.Variable(tf.random_uniform([params['c2']['n_f']], minval=-bias_var, maxval=bias_var)),
+    'bp3': tf.Variable(tf.random_uniform([params['p3']['n_f']], minval=-bias_var, maxval=bias_var)),
+    'bd4': tf.Variable(tf.random_uniform([params['d4']['m']], minval=-bias_var, maxval=bias_var)),
+    'bd5': tf.Variable(tf.random_uniform([params['d5']['m']], minval=-bias_var, maxval=bias_var))
 }
 
 # Construct model
-logits = conv_net(X, weights, biases)
+logits = conv_net(X, weights, biases, params)
 prediction = tf.nn.softmax(logits)
 
 # Define loss and optimizer

@@ -21,7 +21,7 @@ mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 # Training Parameters
 learning_rate = 0.01
 num_steps = 5000
-batch_size = 256
+batch_size = 128
 display_step = 10
 gamma = 4
 
@@ -39,69 +39,141 @@ Y = tf.placeholder(tf.float32, [None, num_classes])
 # Create some wrappers for simplicity
 def conv2d(x, W, strides=1):
     # Conv2D wrapper, with bias and relu activation
-    x = tf.nn.conv2d(x, W, strides=[1, strides, strides, 1], padding='SAME')
-    return x
+    xa = tf.nn.conv2d(x['re'], W['re'], strides=[1, strides, strides, 1], padding='SAME')
+    yb = tf.nn.conv2d(x['im'], W['im'], strides=[1, strides, strides, 1], padding='SAME')
 
+    xb = tf.nn.conv2d(x['re'], W['im'], strides=[1, strides, strides, 1], padding='SAME')
+    ya = tf.nn.conv2d(x['im'], W['re'], strides=[1, strides, strides, 1], padding='SAME')
 
-def maxpool2d(x, k=2):
-    # MaxPool2D wrapper
-    return tf.nn.max_pool(x, ksize=[1, k, k, 1], strides=[1, k, k, 1],
-                          padding='SAME')
+    return {'re' : (xa - yb), 'im' : (xb + ya)}
 
-def nonlin(x, b):
-    return tf.truediv(0.5*gamma, tf.add(tf.square(x - b), (0.5*gamma)**2))
+def nonlin(x):
+    return tf.truediv(0.5*gamma, tf.add(tf.square(x), (0.5*gamma)**2))
+
+def nonlinComplex(x, x0):
+
+    xyab = tf.square(x['re']) + tf.square(x['im']) - tf.square(x0['re']) - tf.square(x0['im'])
+    g2 = tf.square(0.5 * gamma)
+    denom = g2 + tf.square(xyab)
+
+    real = ((g2 * x['re']) - (0.5 * gamma * x['im'] * xyab)) / denom
+
+    imag = ((g2 * x['im']) - (0.5 * gamma * x['re'] * xyab)) / denom
+
+    return {'re' : real, 'im' : imag}
+
+def matmul(x, W):
+    xa = tf.matmul(x['re'], W['re'])
+    yb = tf.matmul(x['im'], W['im'])
+
+    xb = tf.matmul(x['re'], W['im'])
+    ya = tf.matmul(x['im'], W['re'])
+
+    return {'re' : (xa - yb), 'im' : (xb + ya)}
+
+def add(x, w):
+    return {'re' : x['re'] + w['re'], 'im' : x['im'] + w['im']}
 
 # Create model
-def conv_net(x, weights, biases):
+def conv_net(image, weights, biases):
     # MNIST data input is a 1-D vector of 784 features (28*28 pixels)
     # Reshape to match picture format [Height x Width x Channel]
     # Tensor input become 4-D: [Batch Size, Height, Width, Channel]
-    x = tf.reshape(x, shape=[-1, 28, 28, 1])
+
+    image = tf.reshape(image, shape=[-1, 28, 28, 1])
+
+    x = {
+        're' : image,
+        'im' : tf.zeros(tf.shape(image))
+    }
 
     # Convolution Layer
     conv1 = conv2d(x, weights['wc1'])
-    conv1 = nonlin(conv1, biases['bc1'])
+    nonlin1 = nonlinComplex(conv1, biases['bc1'])
 
     # Convolution Layer
-    conv2 = conv2d(conv1, weights['wc2'])
-    conv2 = nonlin(conv2, biases['bc2'])
+    conv2 = conv2d(nonlin1, weights['wc2'])
+    nonlin2 = nonlinComplex(conv2, biases['bc2'])
 
     # Max Pooling (down-sampling)
-    conv3 = conv2d(conv2, weights['wp3'], strides=4)
-    conv3 = nonlin(conv3, biases['bp3'])
+    conv3 = conv2d(nonlin2, weights['wp3'], strides=4)
+    nonlin3 = nonlinComplex(conv3, biases['bp3'])
 
     # Fully connected layer
     # Reshape conv2 output to fit fully connected layer input
-    fc1 = tf.reshape(conv3, [-1, weights['wd4'].get_shape().as_list()[0]])
-    fc1 = tf.matmul(fc1, weights['wd4'])
-    fc1 = nonlin(fc1, biases['bd4'])
+    fc1 = {
+        'im' : tf.reshape(nonlin3['re'], [-1, weights['wd4']['re'].get_shape().as_list()[0]]),
+        're' : tf.reshape(nonlin3['im'], [-1, weights['wd4']['im'].get_shape().as_list()[0]])
+    }
+
+    fc1 = matmul(fc1, weights['wd4'])
+    nonlin4 = nonlinComplex(fc1, biases['bd4'])
 
     # Output, class prediction
-    out = tf.add(tf.matmul(fc1, weights['wd5']), biases['bd5'])
+    fc2 = matmul(nonlin4, weights['wd5'])
+    fc2 = add(fc2, biases['bd5'])
+
+    out = tf.square(fc2['re']) + tf.square(fc2['im'])
+
     return out
 
 # Store layers weight & bias
 weights = {
     # 5x5 conv, 1 input, 32 outputs
-    'wc1': tf.Variable(tf.random_normal([9, 9, 1, 16])),
+    'wc1': {
+        're' : tf.Variable(tf.random_normal([9, 9, 1, 16])),
+        'im' : tf.Variable(tf.random_normal([9, 9, 1, 16]))
+    },
     # 5x5 conv, 32 inputs, 64 outputs
-    'wc2': tf.Variable(tf.random_normal([9, 9, 16, 32])),
-    # 2x2 conv, 64 inputs, 64 outputs
-    'wp3': tf.Variable(tf.random_normal([2, 2, 32, 32])),
+    'wc2' : {
+        're' : tf.Variable(tf.random_normal([9, 9, 16, 32])),
+        'im' : tf.Variable(tf.random_normal([9, 9, 16, 32]))
+    },
+    # 4x4 conv, 64 inputs, 64 outputs
+    'wp3' : {
+        're': tf.Variable(tf.random_normal([4, 4, 32, 32])),
+        'im': tf.Variable(tf.random_normal([4, 4, 32, 32]))
+    },
     # fully connected, 7*7*64 inputs, 1024 outputs
-    'wd4': tf.Variable(tf.random_normal([7*7*32, 256])),
+    'wd4' : {
+        're': tf.Variable(tf.random_normal([7*7*32, 256])),
+        'im': tf.Variable(tf.random_normal([7*7*32, 256]))
+    },
     # 1024 inputs, 10 outputs (class prediction)
-    'wd5': tf.Variable(tf.random_normal([256, num_classes]))
+    'wd5' : {
+        're': tf.Variable(tf.random_normal([256, num_classes])),
+        'im': tf.Variable(tf.random_normal([256, num_classes]))
+    }
 }
 
-bias_var = 5
+bias_var = 2
 
 biases = {
-    'bc1': tf.Variable(tf.random_uniform([16], minval=-bias_var, maxval=bias_var)),
-    'bc2': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
-    'bp3': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
-    'bd4': tf.Variable(tf.random_uniform([256], minval=-bias_var, maxval=bias_var)),
-    'bd5': tf.Variable(tf.random_uniform([num_classes], minval=-bias_var, maxval=bias_var))
+    # 5x5 conv, 1 input, 32 outputs
+    'bc1' : {
+        're': tf.Variable(tf.random_uniform([16], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([16], minval=-bias_var, maxval=bias_var))
+    },
+    # 5x5 conv, 32 inputs, 64 outputs
+    'bc2' : {
+        're': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var))
+    },
+    # 4x4 conv, 64 inputs, 64 outputs
+    'bp3' : {
+        're': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var))
+    },
+    # fully connected, 7*7*64 inputs, 1024 outputs
+    'bd4' : {
+        're': tf.Variable(tf.random_uniform([256], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([256], minval=-bias_var, maxval=bias_var))
+    },
+    # 1024 inputs, 10 outputs (class prediction)
+    'bd5' : {
+        're': tf.Variable(tf.random_uniform([num_classes], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([num_classes], minval=-bias_var, maxval=bias_var))
+    }
 }
 
 # Construct model

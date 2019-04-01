@@ -24,7 +24,7 @@ plt.plot(x_14v, y_14v)
 
 plt.arrow(1557, 43, 30, 0, head_width=2)
 plt.arrow(1643, 43, -30, 0, head_width=2)
-plt.text(1650, 42, r'$\gamma$')
+plt.text(1650, 42, r'$\kappa$')
 plt.plot([1590, 1590], [0, 100], color='k', linewidth=0.4)
 plt.plot([1609, 1609], [0, 100], color='k', linewidth=0.4)
 plt.plot([1600, 1600], [0, 100], color='k', linewidth=0.4)
