@@ -305,7 +305,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 #####################################################
 
 def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
-          img_dim = 28, img_depth = 1, f = 5, p = 2, num_filt1 = 8, num_filt2 = 8, num_filt3 = 8, gamma = 2/np.pi, layer = 128, batch_size = 64, max_epochs = 5000,
+          img_dim = 28, img_depth = 1, f = 5, p = 2, num_filt1 = 8, num_filt2 = 8, num_filt3 = 8, gamma = 2/np.pi, layer = 128, batch_size = 128, max_epochs = 5000,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
@@ -441,40 +441,38 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
     num_since_best = 0
     num_epochs = 0
 
+    val_batch_size = int(batch_size * (val_data.shape[0] / train_data.shape[0]))
+
     for epoch in t:
 
         # calculate loss on validation set
         np.random.shuffle(val_data)
-        val_batch = val_data[:batch_size]
-
-        X_val = val_batch[:,0:-1] # get batch inputs
-        x_val = X_val.reshape(-1, img_depth, img_dim, img_dim)
-
-        Y_val = val_batch[:,-1] # get batch labels
-        y_val = np.eye(num_classes)[Y_val.astype(int)].reshape(-1, num_classes, 1) # convert label to one-hot
-
-        c_val = conv(x_val, y_val, params, gamma, validation=True)
-
-        if c_val < min_val:
-            min_val = c_val
-            best_params = copy.deepcopy(params)
-            num_since_best = 0
-            num_epochs = epoch
-        else:
-            if num_since_best > PATIENCE:
-                print("Early stopping due to non improvement of validation accuracy")
-                break
-            else:
-                num_since_best += 1
-
-        cost_val.append(c_val)
+        val_batches = [val_data[k:k + batch_size] for k in range(0, val_data.shape[0], val_batch_size)]
 
         np.random.shuffle(train_data)
         batches = [train_data[k:k + batch_size] for k in range(0, train_data.shape[0], batch_size)]
 
-        for batch in batches:
-            params, adam_weights, adam_bias, cost, nl1, nl2, nl3, nl4 = adamGD(batch, num_classes, lr, img_dim, img_depth, beta1, beta2, \
+        for curr_b in range(len(batches)):
+            params, adam_weights, adam_bias, cost, nl1, nl2, nl3, nl4 = adamGD(batches[curr_b], num_classes, lr, img_dim, img_depth, beta1, beta2, \
                                                                                params, adam_weights, adam_bias, cost, gamma)
+
+            X_val = val_batches[curr_b][:,0:-1] # get batch inputs
+            x_val = X_val.reshape(-1, img_depth, img_dim, img_dim)
+
+            Y_val = val_batches[curr_b][:,-1] # get batch labels
+            y_val = np.eye(num_classes)[Y_val.astype(int)].reshape(-1, num_classes, 1) # convert label to one-hot
+
+            c_val = conv(x_val, y_val, params, gamma, validation=True)
+
+            if c_val < min_val:
+                min_val = c_val
+                best_params = copy.deepcopy(params)
+                num_since_best = 0
+                num_epochs = epoch
+            else:
+                num_since_best += 1
+
+            cost_val.append(c_val)
 
             if progress_bar:
                 t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
@@ -528,6 +526,11 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
             nl4_i50.append(np.percentile(nl4.imag, 50))
             nl4_i75.append(np.percentile(nl4.imag, 75))
             nl4_i95.append(np.percentile(nl4.imag, 95))
+
+        
+        if num_since_best > PATIENCE:
+            print("Early stopping due to non improvement of validation accuracy")
+            break
 
     final_layer = [nl1, nl2, nl3, nl4]
 
