@@ -212,6 +212,21 @@ def shapes_testing_set():
 	# splitting 80/20
 	return shapes[4::5], labels[4::5]
 
+def mnist_training_and_validation_set():
+    with open("mnist.pkl",'rb') as f:
+        mnist = pickle.load(f)
+    images, labels = mnist["training_images"], mnist["training_labels"]
+
+    labels = labels.reshape(-1,1)
+
+    return images[:50000], labels[:50000], images[50000:], labels[50000:]
+
+def mnist_testing_set():
+    with open("mnist.pkl",'rb') as f:
+        mnist = pickle.load(f)
+
+    return mnist["test_images"], mnist["test_labels"].reshape(-1,1)
+
 def initializeFilter(size, scale = 1.0):
     var = scale/np.sqrt(np.prod(size))
     return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
@@ -233,18 +248,20 @@ def nanargmax(arr):
 
 def norm_stack_shuffle(x, y_dash, by_column=True):
 
-	if by_column:
-		x -= np.mean(x, axis=0)
-		x /= np.std(x, axis=0)
-	else:
-		x -= np.mean(x)
-		x /= np.std(x)
+    x = x.astype(float)
 
-	data = np.hstack((x,y_dash))
-    
-	np.random.shuffle(data)
+    if by_column:
+        x -= np.mean(x, axis=0)
+        x /= np.std(x, axis=0)
+    else:
+        x -= np.mean(x)
+        x /= np.std(x)
 
-	return data
+    data = np.hstack((x,y_dash))
+
+    np.random.shuffle(data)
+
+    return data
 
 def predict(image, label, params, gamma):
 	'''
