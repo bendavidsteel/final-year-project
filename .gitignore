@@ -4,6 +4,7 @@
 *.asv
 *.xml
 *.iml
+*.deb
 Output/
 .vscode/
 *.pkl

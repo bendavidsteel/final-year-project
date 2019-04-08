@@ -30,10 +30,33 @@ num_input = 784 # MNIST data input (img shape: 28*28)
 num_classes = 10 # MNIST total classes (0-9 digits)
 # dropout = 1 # Dropout, probability to keep units
 
+params = {
+    'n_channels' : 1,
+    'wc1' : {
+        'filt' : 5,
+        'n_filts' : 10
+    },
+    'wc2' : {
+        'filt' : 5,
+        'n_filts' : 20
+    },
+    'wp3' : {
+        'pool' : 4,
+        'n_pools' : 20
+    }
+    'wd4' : {
+        'size' : 256
+    },
+    'n_classes' : 10
+}
+
 # tf Graph input
 X = tf.placeholder(tf.float32, [None, num_input])
 Y = tf.placeholder(tf.float32, [None, num_classes])
 # keep_prob = tf.placeholder(tf.float32) # dropout (keep probability)
+
+def save_path():
+    return ''
 
 
 # Create some wrappers for simplicity
@@ -120,7 +143,7 @@ def conv_net(image, weights, biases):
 # Store layers weight & bias
 weights = {
     # 5x5 conv, 1 input, 32 outputs
-    'wc1': {
+    'wc1' : {
         're' : tf.Variable(tf.random_normal([9, 9, 1, 16])),
         'im' : tf.Variable(tf.random_normal([9, 9, 1, 16]))
     },
