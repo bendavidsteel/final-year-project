@@ -236,7 +236,7 @@ sess = tf.Session()
 
 
 total_iterations = 0
-best_validation_accuracy = 0
+best_validation_loss = 1000
 last_improvement = 0
 require_improvement = num_steps // 10
 
@@ -292,9 +292,9 @@ for step in range(1, num_steps+1):
         validation_loss.append(val_loss)
         validation_acc.append(val_acc)
 
-        if val_acc > best_validation_accuracy:
+        if val_loss > best_validation_loss:
             # Update the best-known validation accuracy.
-            best_validation_accuracy = val_acc
+            best_validation_loss = val_loss
             
             # Set the iteration for the last improvement to current.
             last_improvement = total_iterations
@@ -312,7 +312,7 @@ for step in range(1, num_steps+1):
 print("Optimization Finished!")
 
 # restore best variables
-saver.restore(sess=sess, save_path=save_path)
+saver.restore(sess=sess, save_path=save_path_val)
 
 # Calculate accuracy for 256 MNIST test images
 test_accuracy = sess.run(accuracy, feed_dict={X: mnist.test.images[:512],
