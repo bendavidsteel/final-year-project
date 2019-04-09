@@ -24,39 +24,52 @@ num_steps = 5000
 batch_size = 128
 display_step = 10
 gamma = 4
+bias_var = 2
+continue_training = False
 
 # Network Parameters
-num_input = 784 # MNIST data input (img shape: 28*28)
-num_classes = 10 # MNIST total classes (0-9 digits)
 # dropout = 1 # Dropout, probability to keep units
 
 params = {
+    'dim' : 28,
+    'n_input' : 28*28,
     'n_channels' : 1,
     'wc1' : {
-        'filt' : 5,
+        'f' : 5,
         'n_filts' : 10
     },
     'wc2' : {
-        'filt' : 5,
+        'f' : 5,
         'n_filts' : 20
     },
     'wp3' : {
         'pool' : 4,
         'n_pools' : 20
-    }
+    },
     'wd4' : {
-        'size' : 256
+        'n' : (28//4)*(28//4)*20,
+        'm' : 256
+    },
+    'wd5' : {
+        'n' : 256,
+        'm' : 10
     },
     'n_classes' : 10
 }
 
 # tf Graph input
-X = tf.placeholder(tf.float32, [None, num_input])
-Y = tf.placeholder(tf.float32, [None, num_classes])
+X = tf.placeholder(tf.float32, [None, params['n_input']])
+Y = tf.placeholder(tf.float32, [None, params['n_classes']])
 # keep_prob = tf.placeholder(tf.float32) # dropout (keep probability)
 
 def save_path():
-    return ''
+    return 'mnist_' + str(params['wc1']['n_filts']) + 'f' + str(params['wc1']['f']) \
+            + '_' + str(params['wc2']['n_filts']) + 'f' + str(params['wc2']['f']) \
+            + '_p' + str(params['wp3']['pool']) \
+            + '_1f' + str(params['wd4']['m']) \
+            + '_g' + str(gamma) + '_lr_01' \
+            + '_bias' + str(bias_var) + 'b' \
+            + '_try' + str(0) + '.pkl'
 
 
 # Create some wrappers for simplicity
@@ -103,7 +116,7 @@ def conv_net(image, weights, biases):
     # Reshape to match picture format [Height x Width x Channel]
     # Tensor input become 4-D: [Batch Size, Height, Width, Channel]
 
-    image = tf.reshape(image, shape=[-1, 28, 28, 1])
+    image = tf.reshape(image, shape=[-1, params['dim'], params['dim'], 1])
 
     x = {
         're' : image,
@@ -144,58 +157,56 @@ def conv_net(image, weights, biases):
 weights = {
     # 5x5 conv, 1 input, 32 outputs
     'wc1' : {
-        're' : tf.Variable(tf.random_normal([9, 9, 1, 16])),
-        'im' : tf.Variable(tf.random_normal([9, 9, 1, 16]))
+        're' : tf.Variable(tf.random_normal([params['wc1']['f'], params['wc1']['f'], params['n_channels'], params['wc1']['n_filts']])),
+        'im' : tf.Variable(tf.random_normal([params['wc1']['f'], params['wc1']['f'], params['n_channels'], params['wc1']['n_filts']]))
     },
     # 5x5 conv, 32 inputs, 64 outputs
     'wc2' : {
-        're' : tf.Variable(tf.random_normal([9, 9, 16, 32])),
-        'im' : tf.Variable(tf.random_normal([9, 9, 16, 32]))
+        're' : tf.Variable(tf.random_normal([params['wc2']['f'], params['wc2']['f'], params['wc1']['n_filts'], params['wc2']['n_filts']])),
+        'im' : tf.Variable(tf.random_normal([params['wc2']['f'], params['wc2']['f'], params['wc1']['n_filts'], params['wc2']['n_filts']]))
     },
     # 4x4 conv, 64 inputs, 64 outputs
     'wp3' : {
-        're': tf.Variable(tf.random_normal([4, 4, 32, 32])),
-        'im': tf.Variable(tf.random_normal([4, 4, 32, 32]))
+        're': tf.Variable(tf.random_normal([params['wp3']['pool'], params['wp3']['pool'], params['wc2']['n_filts'], params['wp3']['n_pools']])),
+        'im': tf.Variable(tf.random_normal([params['wp3']['pool'], params['wp3']['pool'], params['wc2']['n_filts'], params['wp3']['n_pools']]))
     },
     # fully connected, 7*7*64 inputs, 1024 outputs
     'wd4' : {
-        're': tf.Variable(tf.random_normal([7*7*32, 256])),
-        'im': tf.Variable(tf.random_normal([7*7*32, 256]))
+        're': tf.Variable(tf.random_normal([params['wd4']['n'], params['wd4']['m']])),
+        'im': tf.Variable(tf.random_normal([params['wd4']['n'], params['wd4']['m']]))
     },
     # 1024 inputs, 10 outputs (class prediction)
     'wd5' : {
-        're': tf.Variable(tf.random_normal([256, num_classes])),
-        'im': tf.Variable(tf.random_normal([256, num_classes]))
+        're': tf.Variable(tf.random_normal([params['wd5']['n'], params['n_classes']])),
+        'im': tf.Variable(tf.random_normal([params['wd5']['n'], params['n_classes']]))
     }
 }
-
-bias_var = 2
 
 biases = {
     # 5x5 conv, 1 input, 32 outputs
     'bc1' : {
-        're': tf.Variable(tf.random_uniform([16], minval=-bias_var, maxval=bias_var)),
-        'im': tf.Variable(tf.random_uniform([16], minval=-bias_var, maxval=bias_var))
+        're': tf.Variable(tf.random_uniform([params['wc1']['n_filts']], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([params['wc1']['n_filts']], minval=-bias_var, maxval=bias_var))
     },
     # 5x5 conv, 32 inputs, 64 outputs
     'bc2' : {
-        're': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
-        'im': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var))
+        're': tf.Variable(tf.random_uniform([params['wc2']['n_filts']], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([params['wc2']['n_filts']], minval=-bias_var, maxval=bias_var))
     },
     # 4x4 conv, 64 inputs, 64 outputs
     'bp3' : {
-        're': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var)),
-        'im': tf.Variable(tf.random_uniform([32], minval=-bias_var, maxval=bias_var))
+        're': tf.Variable(tf.random_uniform([params['wp3']['n_pools']], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([params['wp3']['n_pools']], minval=-bias_var, maxval=bias_var))
     },
     # fully connected, 7*7*64 inputs, 1024 outputs
     'bd4' : {
-        're': tf.Variable(tf.random_uniform([256], minval=-bias_var, maxval=bias_var)),
-        'im': tf.Variable(tf.random_uniform([256], minval=-bias_var, maxval=bias_var))
+        're': tf.Variable(tf.random_uniform([params['wd4']['m']], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([params['wd4']['m']], minval=-bias_var, maxval=bias_var))
     },
     # 1024 inputs, 10 outputs (class prediction)
     'bd5' : {
-        're': tf.Variable(tf.random_uniform([num_classes], minval=-bias_var, maxval=bias_var)),
-        'im': tf.Variable(tf.random_uniform([num_classes], minval=-bias_var, maxval=bias_var))
+        're': tf.Variable(tf.random_uniform([params['n_classes']], minval=-bias_var, maxval=bias_var)),
+        'im': tf.Variable(tf.random_uniform([params['n_classes']], minval=-bias_var, maxval=bias_var))
     }
 }
 
@@ -222,8 +233,7 @@ saver = tf.train.Saver()
 # Start training
 sess = tf.Session()
 
-# Run the initializer
-sess.run(init)
+
 
 total_iterations = 0
 best_validation_accuracy = 0
@@ -235,13 +245,24 @@ save_dir = 'checkpoints/'
 if not os.path.exists(save_dir):
     os.makedirs(save_dir)
 
-save_path = os.path.join(save_dir, 'best_validation')
+save_path_val = os.path.join(save_dir, 'best_validation')
+save_path_loss = save_path()
 
-training_loss = []
-validation_loss = []
+if not continue_training:
+    # Run the initializer
+    sess.run(init)
 
-training_acc = []
-validation_acc = []
+    training_loss = []
+    validation_loss = []
+
+    training_acc = []
+    validation_acc = []
+
+else:
+    saver.restore(sess=sess, save_path=save_path_val)
+
+    with open(save_path_loss, 'rb') as file:
+        [training_loss, validation_loss, training_acc, validation_acc, test_accuracy] = pickle.load(file)
 
 for step in range(1, num_steps+1):
 
@@ -279,7 +300,7 @@ for step in range(1, num_steps+1):
             last_improvement = total_iterations
 
             # Save all variables of the TensorFlow graph to file.
-            saver.save(sess=sess, save_path=save_path)
+            saver.save(sess=sess, save_path=save_path_val)
 
         # If no improvement found in the required number of iterations.
         if total_iterations - last_improvement > require_improvement:
@@ -299,10 +320,9 @@ test_accuracy = sess.run(accuracy, feed_dict={X: mnist.test.images[:512],
 
 print("Testing Accuracy:", test_accuracy)
     
-save_path = 'mnist_16f9_p2_32f9_p2_1f512_g4_lr_01_bias10b_try2.pkl'
 to_save = [training_loss, validation_loss, training_acc, validation_acc, test_accuracy]
 
-with open(save_path, 'wb') as file:
+with open(save_path_loss, 'wb') as file:
     pickle.dump(to_save, file)
 
 sess.close()
