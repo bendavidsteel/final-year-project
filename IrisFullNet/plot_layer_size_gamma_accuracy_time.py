@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
 	fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(17,7))
 
-	eval_save_path = "layer_gamma_accuracy_1616_0.05_15_heart_ne5000_bias10b.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_1616_0.05_15_heart.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,0].contourf(x/2, y/2, z, 20, vmin=20, vmax=100)
+	axes[0,0].contourf(x/2, y/2, z, 20, vmin=40, vmax=85)
 	axes[0,0].set_aspect('equal')
 	axes[0,0].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,0].set_ylabel(r'$\kappa$ for Second Layer')
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 	axes[1,0].set_ylabel(r'$\kappa$ for Second Layer')
 	# axes[1,0].set_title("[16,16]")
 
-	eval_save_path = "layer_gamma_accuracy_1664_0.05_15_heart_ne5000_bias10b.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_1664_0.05_15_heart.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -58,7 +58,7 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,1].contourf(x/2, y/2, z, 20, vmin=20, vmax=100)
+	axes[0,1].contourf(x/2, y/2, z, 20, vmin=40, vmax=85)
 	axes[0,1].set_aspect('equal')
 	axes[0,1].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,1].set_ylabel(r'$\kappa$ for Second Layer')
@@ -75,7 +75,7 @@ if __name__ == '__main__':
 	axes[1,1].set_ylabel(r'$\kappa$ for Second Layer')
 	# axes[0,1].set_title("[16,64]")
 
-	eval_save_path = "layer_gamma_accuracy_6416_0.05_15_heart_ne5000_bias10b.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_6416_0.05_15_heart.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -91,7 +91,7 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,2].contourf(x/2, y/2, z, 20, vmin=20, vmax=100)
+	axes[0,2].contourf(x/2, y/2, z, 20, vmin=40, vmax=85)
 	axes[0,2].set_aspect('equal')
 	axes[0,2].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,2].set_ylabel(r'$\kappa$ for Second Layer')
@@ -108,7 +108,7 @@ if __name__ == '__main__':
 	axes[1,2].set_ylabel(r'$\kappa$ for Second Layer')
 	# axes[1,2].set_title("[64,16]")
 
-	eval_save_path = "layer_gamma_accuracy_6464_0.05_15_heart_ne5000_bias10b.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_6464_0.05_15_heart.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -124,7 +124,7 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	im1 = axes[0,3].contourf(x/2, y/2, z, 20, vmin=20, vmax=100)
+	im1 = axes[0,3].contourf(x/2, y/2, z, 20, vmin=40, vmax=85)
 	axes[0,3].set_aspect('equal')
 	axes[0,3].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,3].set_ylabel(r'$\kappa$ for Second Layer')

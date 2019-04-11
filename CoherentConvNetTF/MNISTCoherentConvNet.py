@@ -23,8 +23,8 @@ learning_rate = 0.01
 num_steps = 5000
 batch_size = 128
 display_step = 10
-gamma = 4
-bias_var = 2
+gamma = 2
+bias_var = 1
 continue_training = False
 
 # Network Parameters
@@ -48,10 +48,10 @@ params = {
     },
     'wd4' : {
         'n' : (28//4)*(28//4)*20,
-        'm' : 256
+        'm' : 512
     },
     'wd5' : {
-        'n' : 256,
+        'n' : 512,
         'm' : 10
     },
     'n_classes' : 10
@@ -238,7 +238,7 @@ sess = tf.Session()
 total_iterations = 0
 best_validation_loss = 1000
 last_improvement = 0
-require_improvement = num_steps // 10
+require_improvement = num_steps // 2
 
 save_dir = 'checkpoints/'
 
@@ -292,7 +292,7 @@ for step in range(1, num_steps+1):
         validation_loss.append(val_loss)
         validation_acc.append(val_acc)
 
-        if val_loss > best_validation_loss:
+        if val_loss < best_validation_loss:
             # Update the best-known validation accuracy.
             best_validation_loss = val_loss
             

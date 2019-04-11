@@ -212,20 +212,33 @@ def shapes_testing_set():
 	# splitting 80/20
 	return shapes[4::5], labels[4::5]
 
-def mnist_training_and_validation_set():
-    with open("mnist.pkl",'rb') as f:
-        mnist = pickle.load(f)
-    images, labels = mnist["training_images"], mnist["training_labels"]
+def extract_fourshapes_dataset():
+	'''
+	Extract shapes dataset
+	'''
+	save_path = "fourshapes20.pkl"
 
-    labels = labels.reshape(-1,1)
+	with open(save_path, 'rb') as f:
+		shapes = pickle.load(f)
 
-    return images[:50000], labels[:50000], images[50000:], labels[50000:]
+	return shapes[:5000, :400].astype(float), shapes[:5000, 400].reshape(-1,1).astype(float)
 
-def mnist_testing_set():
-    with open("mnist.pkl",'rb') as f:
-        mnist = pickle.load(f)
+def fourshapes_training_set():
+	shapes, labels = extract_fourshapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	return np.concatenate((shapes[::5], shapes[1::5], shapes[2::5])), np.concatenate((labels[::5], labels[1::5], labels[2::5]))
 
-    return mnist["test_images"], mnist["test_labels"].reshape(-1,1)
+def fourshapes_validation_set():
+	shapes, labels = extract_fourshapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return shapes[3::5], labels[3::5]
+
+def fourshapes_testing_set():
+	shapes, labels = extract_fourshapes_dataset()
+	# slice indexing to make up for non-random distribution of digits
+	# splitting 80/20
+	return shapes[4::5], labels[4::5]
 
 def initializeFilter(size, scale = 1.0):
     var = scale/np.sqrt(np.prod(size))
@@ -248,20 +261,18 @@ def nanargmax(arr):
 
 def norm_stack_shuffle(x, y_dash, by_column=True):
 
-    x = x.astype(float)
+	if by_column:
+		x -= np.mean(x, axis=0)
+		x /= np.std(x, axis=0)
+	else:
+		x -= np.mean(x)
+		x /= np.std(x)
 
-    if by_column:
-        x -= np.mean(x, axis=0)
-        x /= np.std(x, axis=0)
-    else:
-        x -= np.mean(x)
-        x /= np.std(x)
+	data = np.hstack((x,y_dash))
+    
+	np.random.shuffle(data)
 
-    data = np.hstack((x,y_dash))
-
-    np.random.shuffle(data)
-
-    return data
+	return data
 
 def predict(image, label, params, gamma):
 	'''
@@ -291,9 +302,9 @@ def predict(image, label, params, gamma):
 
 	out = w5.dot(a1) + b5.reshape(-1,1)
 
-	measured = np.abs(out)
+	measured = np.real(out)**2 + np.imag(out)**2
 
 	prob = softmax(measured)
 	# not using softmax as exponential cannot be implemented in optics
 
-	return np.argmax(out), np.max(out)
+	return np.argmax(prob), np.max(prob)

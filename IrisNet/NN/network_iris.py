@@ -307,7 +307,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 #####################################################
 
 def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
-          data_dim = 4, gamma = 2/np.pi, layers = [32,32], batch_size = 64, num_epochs = 2000,
+          data_dim = 4, gamma = 2/np.pi, layers = [32,32], batch_size = 64, max_epochs = 2000,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
@@ -375,9 +375,9 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
     print("LR: "+str(lr)+", Batch Size: "+str(batch_size)+", Gamma: "+str(gamma))
 
     if progress_bar:
-        t = tqdm(range(num_epochs))
+        t = tqdm(range(max_epochs))
     else:
-        t = range(num_epochs)
+        t = range(max_epochs)
 
     # checking for early stopping
     min_val = float('inf')

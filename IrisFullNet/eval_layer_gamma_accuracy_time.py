@@ -7,7 +7,7 @@ import pickle
 
 if __name__ == '__main__':
 
-    eval_save_path = "layer_gamma_accuracy_full_bias10b_6464_0.05_15_heart.pkl"
+    eval_save_path = "layer_gamma_accuracy_full_bias10b_6416_0.05_15_heart.pkl"
 
     num_gammas = 15
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     [x_g, y_g, g_a, e_n] = to_save
 
-    for i in range(5, num_gammas):
+    for i in range(12, num_gammas):
         for j in range(num_gammas):
             # for k in range(num_gammas):
 

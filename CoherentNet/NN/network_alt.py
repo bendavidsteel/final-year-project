@@ -314,7 +314,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 #####################################################
 
 def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
-          data_dim = 13, gamma = 2/np.pi, layers = [32,32], batch_size = 64, num_epochs = 5000,
+          data_dim = 13, gamma = 2/np.pi, bias_init=1, layers = [32,32], batch_size = 64, max_epochs = 5000,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
@@ -340,9 +340,9 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
         b1, b2, b3 = (hidden_layer1, 1), (hidden_layer2, 1), (num_classes, 1)
 
-        b1 = initializeBias(b1)
-        b2 = initializeBias(b2)
-        b3 = initializeBias(b3)
+        b1 = initializeBias(b1, bias_init)
+        b2 = initializeBias(b2, bias_init)
+        b3 = initializeBias(b3, bias_init)
         # b4 = initializeBias(b4)
         # b5 = initializeBias(b5)
 
@@ -384,9 +384,9 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
     print("LR: "+str(lr)+", Batch Size: "+str(batch_size)+", Gamma: "+str(gamma))
 
     if progress_bar:
-        t = tqdm(range(num_epochs))
+        t = tqdm(range(max_epochs))
     else:
-        t = range(num_epochs)
+        t = range(max_epochs)
 
     # checking for early stopping
     min_val = float('inf')
@@ -429,31 +429,31 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
             if progress_bar:
                 t.set_description("Training Cost: %.2f, Validation Cost: %.2f" % (cost[-1], cost_val[-1]))
 
-            nl1_r5.append(np.percentile(nl1.real, 5))
-            nl1_r25.append(np.percentile(nl1.real, 25))
-            nl1_r50.append(np.percentile(nl1.real, 50))
-            nl1_r75.append(np.percentile(nl1.real, 75))
-            nl1_r95.append(np.percentile(nl1.real, 95))
+            # nl1_r5.append(np.percentile(nl1.real, 5))
+            # nl1_r25.append(np.percentile(nl1.real, 25))
+            # nl1_r50.append(np.percentile(nl1.real, 50))
+            # nl1_r75.append(np.percentile(nl1.real, 75))
+            # nl1_r95.append(np.percentile(nl1.real, 95))
 
-            nl2_r5.append(np.percentile(nl2.real, 5))
-            nl2_r25.append(np.percentile(nl2.real, 25))
-            nl2_r50.append(np.percentile(nl2.real, 50))
-            nl2_r75.append(np.percentile(nl2.real, 75))
-            nl2_r95.append(np.percentile(nl2.real, 95))
+            # nl2_r5.append(np.percentile(nl2.real, 5))
+            # nl2_r25.append(np.percentile(nl2.real, 25))
+            # nl2_r50.append(np.percentile(nl2.real, 50))
+            # nl2_r75.append(np.percentile(nl2.real, 75))
+            # nl2_r95.append(np.percentile(nl2.real, 95))
 
-            nl1_i5.append(np.percentile(nl1.imag, 5))
-            nl1_i25.append(np.percentile(nl1.imag, 25))
-            nl1_i50.append(np.percentile(nl1.imag, 50))
-            nl1_i75.append(np.percentile(nl1.imag, 75))
-            nl1_i95.append(np.percentile(nl1.imag, 95))
+            # nl1_i5.append(np.percentile(nl1.imag, 5))
+            # nl1_i25.append(np.percentile(nl1.imag, 25))
+            # nl1_i50.append(np.percentile(nl1.imag, 50))
+            # nl1_i75.append(np.percentile(nl1.imag, 75))
+            # nl1_i95.append(np.percentile(nl1.imag, 95))
 
-            nl2_i5.append(np.percentile(nl2.imag, 5))
-            nl2_i25.append(np.percentile(nl2.imag, 25))
-            nl2_i50.append(np.percentile(nl2.imag, 50))
-            nl2_i75.append(np.percentile(nl2.imag, 75))
-            nl2_i95.append(np.percentile(nl2.imag, 95))
+            # nl2_i5.append(np.percentile(nl2.imag, 5))
+            # nl2_i25.append(np.percentile(nl2.imag, 25))
+            # nl2_i50.append(np.percentile(nl2.imag, 50))
+            # nl2_i75.append(np.percentile(nl2.imag, 75))
+            # nl2_i95.append(np.percentile(nl2.imag, 95))
 
-    final_layer = [nl1, nl2]
+    # final_layer = [nl1, nl2]
 
     # layer_q5 = [nl1_q5, nl2_q5]
     # layer_q25 = [nl1_q25, nl2_q25]
@@ -461,12 +461,12 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
     # layer_q75 = [nl1_q75, nl2_q75]
     # layer_q95 = [nl1_q95, nl2_q95]
 
-    nl1_p = [nl1_r5, nl1_r25, nl1_r50, nl1_r75, nl1_r95, nl1_i5, nl1_i25, nl1_i50, nl1_i75, nl1_i95]
-    nl2_p = [nl2_r5, nl2_r25, nl2_r50, nl2_r75, nl2_r95, nl2_i5, nl2_i25, nl2_i50, nl2_i75, nl2_i95]
+    # nl1_p = [nl1_r5, nl1_r25, nl1_r50, nl1_r75, nl1_r95, nl1_i5, nl1_i25, nl1_i50, nl1_i75, nl1_i95]
+    # nl2_p = [nl2_r5, nl2_r25, nl2_r50, nl2_r75, nl2_r95, nl2_i5, nl2_i25, nl2_i50, nl2_i75, nl2_i95]
 
     if save:    
         # to_save = [params, cost, cost_val, nl1_l, nl2_l]
-        to_save = [best_params, cost, cost_val, nl1_p, nl2_p, final_layer]
+        to_save = [best_params, cost, cost_val, num_epochs]
         
         with open(save_path, 'wb') as file:
             pickle.dump(to_save, file)
