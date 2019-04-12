@@ -7,7 +7,7 @@ import pickle
 
 if __name__ == '__main__':
 
-    eval_save_path = "layer_gamma_accuracy_6464_0.05_15_heart_ne5000_bias10b.pkl"
+    eval_save_path = "layer_gamma_accuracy_6416_0.05_15_heart_ne5000_bias10b.pkl"
 
     num_gammas = 10
 
@@ -25,7 +25,7 @@ if __name__ == '__main__':
 
     [x_g, y_g, g_a, e_n] = to_save
 
-    for i in range(5):
+    for i in range(5, num_gammas):
         for j in range(num_gammas):
             # for k in range(num_gammas):
 
@@ -37,7 +37,7 @@ if __name__ == '__main__':
                 # save_path = 'layer_gamma_accuracy/_'+str(i)+'_'+str(j)+'_'+str(k)+'.pkl'
                 save_path = 'layer_gamma_accuracy/_'+str(i)+'_'+str(j)+'.pkl'
                 # cost = train(gamma = [g_vals[i], g_vals[j], g_vals[k]], layers = [32,32], save_path = save_path)
-                cost = train(gamma = [g_vals[i], g_vals[j]], layers = [64, 64], save_path = save_path, progress_bar=False, lr=0.01, max_epochs=5000)
+                cost = train(gamma = [g_vals[i], g_vals[j]], layers = [64, 16], save_path = save_path, progress_bar=False, lr=0.01, max_epochs=5000)
 
                 params, cost, cost_val, num_epochs = pickle.load(open(save_path, 'rb'))
 

@@ -7,15 +7,15 @@ import pickle
 
 if __name__ == '__main__':
 
-    eval_save_path = "gamma_vs_init_accuracy_coherent_3232_heart_ne5000.pkl"
+    eval_save_path = "gamma8_vs_init16_accuracy_coherent_3232_heart_ne5000.pkl"
 
     num_gammas = 15
     num_inits = 15
 
     iters = 3
 
-    gamma_vals = np.linspace(0.05, 2, num_gammas)
-    init_vals = np.linspace(0, 4, num_inits)
+    gamma_vals = np.linspace(0.05, 8, num_gammas)
+    init_vals = np.linspace(0, 16, num_inits)
 
     gamma = np.zeros((num_gammas*num_inits,))
     inits = np.zeros((num_gammas*num_inits,))
@@ -69,10 +69,10 @@ if __name__ == '__main__':
                 # g_a[(i*(num_gammas**2)) + (j*num_gammas) + k] += float(corr/len(test_data)*100))
                 # e_n[(i*(num_gammas**2)) + (j*num_gammas) + k] += num_epochs
 
-                gamma[i*num_gammas + j] = gamma_vals[i]
-                inits[i*num_gammas + j] = init_vals[j]
-                acc[i*num_gammas + j] += float(corr/len(test_data)*100) / iters
-                epochs[i*num_gammas + j] += num_epochs / iters
+                gamma[i*num_inits + j] = gamma_vals[i]
+                inits[i*num_inits + j] = init_vals[j]
+                acc[i*num_inits + j] += float(corr/len(test_data)*100) / iters
+                epochs[i*num_inits + j] += num_epochs / iters
 
                 # t.set_description("x: %.2f, y: %.2f, z: %.2f, n: %.2f" % (g_vals[i], g_vals[j], g_vals[k], n))
                 print("g: %.2f, i: %.2f, n: %.2f" % (gamma_vals[i], init_vals[j], n))
