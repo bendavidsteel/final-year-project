@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 18/03/19'''
+
 from NN.network import *
 from NN.utils import *
 

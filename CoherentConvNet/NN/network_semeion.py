@@ -8,7 +8,7 @@ Date: June 12th, 2018
 
 '''
 Adapted by Ben Steel
-Date: 05/02/19
+Date: 10/03/19
 '''
 
 from NN.forward import *
@@ -90,7 +90,7 @@ def conv(image, label, params, gamma, validation = False):
 
     outmeasured = dout * dmeasured
 
-    db5 = dout
+    db5 = outmeasured
     dw5 = outmeasured * np.transpose(a1, (0,2,1)).conj()
 
     da1 = np.matmul(w5.conj().T, outmeasured)
@@ -330,7 +330,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 ##################### Training ######################
 #####################################################
 
-def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
+def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99, bias_var=0,
           img_dim = 16, img_depth = 1, f = 5, p = 2, num_filt1 = 8, num_filt2 = 8, num_filt3 = 8, gamma = 2/np.pi, layer = 128, batch_size = 256, max_epochs = 5000,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
@@ -361,11 +361,11 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
         b1, b2, b3 = (num_filt1, 1), (num_filt2, 1), (num_filt3, 1)
         b4, b5 = (hidden_layer, 1), (num_classes, 1)
 
-        b1 = initializeBias(b1)
-        b2 = initializeBias(b2)
-        b3 = initializeBias(b3)
-        b4 = initializeBias(b4)
-        b5 = initializeBias(b5)
+        b1 = initializeBias(b1, bias_var)
+        b2 = initializeBias(b2, bias_var)
+        b3 = initializeBias(b3, bias_var)
+        b4 = initializeBias(b4, bias_var)
+        b5 = initializeBias(b5, bias_var)
 
         params = [f1, f2, f3, w4, w5, b1, b2, b3, b4, b5]
 
@@ -436,7 +436,7 @@ def train(num_classes = 10, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
 
     # checking for early stopping
     min_val = float('inf')
-    PATIENCE = 20
+    PATIENCE = 10
     num_since_best = 0
     num_epochs = 0
 

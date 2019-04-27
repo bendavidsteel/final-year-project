@@ -259,7 +259,7 @@ def gradDescent(batch, num_classes, lr, dim, n_c, params, cost, config):
 #####################################################
 
 def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
-          data_dim = 13, gamma = 2/np.pi, layers = [32,32], batch_size = 64, num_epochs = 5000,
+          data_dim = 13, gamma = 2/np.pi, layers = [32,32], batch_size = 64, max_epochs = 5000, bias_var = 10,
           save_path = 'params.pkl', save = True, continue_training = False, progress_bar = True):
 
     # training data
@@ -277,9 +277,9 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
         ## Initializing all the parameters
         w1, w2, w3 = (hidden_layer1, data_dim), (hidden_layer2, hidden_layer1), (num_classes, hidden_layer2)
 
-        w1 = initializeWeight(w1)
-        w2 = initializeWeight(w2)
-        w3 = initializeWeight(w3)
+        w1 = initializeWeight(w1, bias_var)
+        w2 = initializeWeight(w2, bias_var)
+        w3 = initializeWeight(w3, bias_var)
         # w4 = initializeWeight(w4)
         # w5 = initializeWeight(w5)
 
@@ -319,9 +319,9 @@ def train(num_classes = 2, lr = 0.01, beta1 = 0.95, beta2 = 0.99,
     print("LR: "+str(lr)+", Batch Size: "+str(batch_size)+", Gamma: "+str(gamma))
 
     if progress_bar:
-        t = tqdm(range(num_epochs))
+        t = tqdm(range(max_epochs))
     else:
-        t = range(num_epochs)
+        t = range(max_epochs)
 
     # checking for early stopping
     min_val = float('inf')

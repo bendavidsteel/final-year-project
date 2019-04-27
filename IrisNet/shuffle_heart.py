@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 10/02/19'''
+
 import numpy as np 
 
 with open('heart.csv', 'r') as f:

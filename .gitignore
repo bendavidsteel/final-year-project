@@ -58,3 +58,5 @@ MNISTConvNetTF/checkpoints/
 CoherentConvNetTF/checkpoints/
 CoherentNet/InvalidFiles/
 *.zip
+
+SemeionConvNet/OldData/

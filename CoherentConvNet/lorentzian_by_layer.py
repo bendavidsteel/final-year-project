@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 19/03/19'''
+
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import pickle
@@ -5,7 +8,7 @@ import numpy as np
 
 if __name__ == '__main__':
     
-    save_path = '4Gamma_lr01_bias2b_CoherentNet_4_8f5_8p2_128_fourshapesDataset_NLdata_try0.pkl'
+    save_path = 'adamGD_SoftmaxCross_8Gamma_lr01_bias4b_CoherentNet_8_8f5_8p2_128_semeionDataset_NLdata_try0.pkl'
 
     params, cost, cost_val, nl1_p, nl2_p, nl3_p, nl4_p, final_layer = pickle.load(open(save_path, 'rb'))
 
@@ -17,8 +20,8 @@ if __name__ == '__main__':
     # legend = ["Layer 1", "Layer 2", "Layer 3", "Layer 4"]
     legend = ["Layer 1", "Layer 2", "Layer 3", "Layer 4"]
 
-    m = 18
-    k = 12
+    m = 30
+    k = 4
     n = m*k
     num_points = 20
     sub = n // num_points
@@ -130,9 +133,10 @@ if __name__ == '__main__':
 
     axes[0].set_xlabel('Epochs')
     axes[0].set_ylabel(r'$\Re(f(x))$')
-    start, end = -1.2, 1.21
+    start, end = -2, 2.01
+    step = 0.4
     axes[0].set_ylim(bottom=start, top=end)
-    axes[0].yaxis.set_ticks(np.arange(start, end, 0.4))
+    axes[0].yaxis.set_ticks(np.arange(start, end, step))
     axes[0].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
     axes[0].xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'))
     axes[0].legend(legend, loc='upper left')
@@ -170,7 +174,7 @@ if __name__ == '__main__':
     axes[1].set_xlabel('Epochs')
     axes[1].set_ylabel(r'$\Im(f(x))$')
     axes[1].set_ylim(bottom=start, top=end)
-    axes[1].yaxis.set_ticks(np.arange(start, end, 0.4))
+    axes[1].yaxis.set_ticks(np.arange(start, end, step))
     axes[1].yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.1f'))
     axes[1].xaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'))
 

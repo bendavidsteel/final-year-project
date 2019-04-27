@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 17/03/19'''
+
 import matplotlib.pyplot as plt
 import numpy as np 
 import pickle
@@ -11,7 +14,7 @@ if __name__ == '__main__':
 
 	fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(16,6))
 
-	eval_save_path = "gamma_vs_init_accuracy_coherent_3232_heart_ne5000.pkl"
+	eval_save_path = "gamma8_vs_init16_accuracy_coherent_3232_heart_ne5000.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 

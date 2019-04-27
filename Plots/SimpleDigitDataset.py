@@ -1,5 +1,5 @@
-'''Author: Ben Steel
-Date: 05/02/19'''
+'''Author : Ben Steel
+Date : 29/01/19'''
 
 import numpy as np
 

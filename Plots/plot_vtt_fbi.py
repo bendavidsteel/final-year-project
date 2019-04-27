@@ -1,3 +1,6 @@
+'''Author : Ben Steel
+Date : 19/03/19'''
+
 import numpy as np 
 import matplotlib.pyplot as plt
 

@@ -1,4 +1,5 @@
-''' Author: Ben Steel '''
+''' Author: Ben Steel
+Date: 12/03/19 '''
 
 
 from NN.network import *

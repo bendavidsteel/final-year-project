@@ -4,6 +4,9 @@ Description: Script to train the network and measure its performance on the test
 Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
+
+Altered by : Ben Steel
+Date : 29/02/19
 '''
 from CNN.network_shapes import *
 from CNN.utils import *
@@ -16,12 +19,12 @@ import json
 
 if __name__ == '__main__':
     
-    new_save = 'adamGD_SoftmaxCross_4Gamma_bias10b_Net128_NLData_ShapesDataset_500epochs_filter7_0'
-    old_save = 'adamGD_SoftmaxCross_4Gamma_bias10b_Net128_NLData_ShapesDataset_0epochs_filter7_0'
+    new_save = 'adamGD_SoftmaxCross_4Gamma_bias10b_Net128_NLData_ShapesDataset_1000epochs_filter7_1'
+    old_save = 'adamGD_SoftmaxCross_4Gamma_bias10b_Net128_NLData_ShapesDataset_500epochs_filter7_1'
     gamma = 4
 
     # FIUX THIS
-    cost = train(gamma = gamma, save_path = new_save, continue_training = True, old_save = old_save)
+    cost = train(gamma = gamma, save_path = new_save, continue_training = True, old_save = old_save, f=7)
 
     cost, cost_val, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95 = json.load(open(new_save + '.json', 'rb'))
     params, final_layer = pickle.load(open(new_save + '.pkl', 'rb'))

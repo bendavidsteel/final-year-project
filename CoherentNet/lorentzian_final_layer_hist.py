@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 16/03/19'''
+
 import matplotlib.pyplot as plt
 import pickle
 import numpy as np

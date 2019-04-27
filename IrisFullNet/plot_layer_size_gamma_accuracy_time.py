@@ -1,15 +1,23 @@
+'''Author: Ben Steel
+Date: 13/02/19'''
+
 import matplotlib.pyplot as plt
 import numpy as np 
 import pickle
 
 if __name__ == '__main__':
 
-	num_gammas = 10
+	num_gammas = 15
 	iters = 5
+
+	low_acc = 40
+	high_acc = 90
+	low_epochs = 0
+	high_epochs = 5000
 
 	fig, axes = plt.subplots(nrows=2, ncols=4, figsize=(17,7))
 
-	eval_save_path = "layer_gamma_accuracy_full_bias10b_1616_0.05_15_heart.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_me5000_1616_0.05_15_heart.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -25,7 +33,7 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,0].contourf(x/2, y/2, z, 20, vmin=40, vmax=85)
+	axes[0,0].contourf(x/2, y/2, z, 20, vmin=low_acc, vmax=high_acc)
 	axes[0,0].set_aspect('equal')
 	axes[0,0].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,0].set_ylabel(r'$\kappa$ for Second Layer')
@@ -36,13 +44,13 @@ if __name__ == '__main__':
 			z[j,i] = e_n[i*num_gammas + j]
 			# z[j,i] = g_a[i*num_gammas + j]
 
-	axes[1,0].contourf(x/2, y/2, z, 20, vmin=0, vmax=5000, cmap='plasma')
+	axes[1,0].contourf(x/2, y/2, z, 20, vmin=low_epochs, vmax=high_epochs, cmap='plasma')
 	axes[1,0].set_aspect('equal')
 	axes[1,0].set_xlabel(r'$\kappa$ for First Layer')
 	axes[1,0].set_ylabel(r'$\kappa$ for Second Layer')
 	# axes[1,0].set_title("[16,16]")
 
-	eval_save_path = "layer_gamma_accuracy_full_bias10b_1664_0.05_15_heart.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_me5000_1632_0.05_15_heart.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -58,24 +66,24 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,1].contourf(x/2, y/2, z, 20, vmin=40, vmax=85)
+	axes[0,1].contourf(x/2, y/2, z, 20, vmin=low_acc, vmax=high_acc)
 	axes[0,1].set_aspect('equal')
 	axes[0,1].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,1].set_ylabel(r'$\kappa$ for Second Layer')
-	axes[0,1].set_title("[16,64]")
+	axes[0,1].set_title("[16,32]")
 
 	for i in range(num_gammas):
 		for j in range(num_gammas):
 			z[j,i] = e_n[i*num_gammas + j]
 			# z[j,i] = g_a[i*num_gammas + j]
 
-	axes[1,1].contourf(x/2, y/2, z, 20, vmin=0, vmax=5000, cmap='plasma')
+	axes[1,1].contourf(x/2, y/2, z, 20, vmin=low_epochs, vmax=high_epochs, cmap='plasma')
 	axes[1,1].set_aspect('equal')
 	axes[1,1].set_xlabel(r'$\kappa$ for First Layer')
 	axes[1,1].set_ylabel(r'$\kappa$ for Second Layer')
 	# axes[0,1].set_title("[16,64]")
 
-	eval_save_path = "layer_gamma_accuracy_full_bias10b_6416_0.05_15_heart.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_me5000_3216_0.05_15_heart.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -91,24 +99,24 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,2].contourf(x/2, y/2, z, 20, vmin=40, vmax=85)
+	axes[0,2].contourf(x/2, y/2, z, 20, vmin=low_acc, vmax=high_acc)
 	axes[0,2].set_aspect('equal')
 	axes[0,2].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,2].set_ylabel(r'$\kappa$ for Second Layer')
-	axes[0,2].set_title("[64,16]")
+	axes[0,2].set_title("[32,16]")
 
 	for i in range(num_gammas):
 		for j in range(num_gammas):
 			z[j,i] = e_n[i*num_gammas + j]
 			# z[j,i] = g_a[i*num_gammas + j]
 
-	axes[1,2].contourf(x/2, y/2, z, 20, vmin=0, vmax=5000, cmap='plasma')
+	axes[1,2].contourf(x/2, y/2, z, 20, vmin=low_epochs, vmax=high_epochs, cmap='plasma')
 	axes[1,2].set_aspect('equal')
 	axes[1,2].set_xlabel(r'$\kappa$ for First Layer')
 	axes[1,2].set_ylabel(r'$\kappa$ for Second Layer')
 	# axes[1,2].set_title("[64,16]")
 
-	eval_save_path = "layer_gamma_accuracy_full_bias10b_6464_0.05_15_heart.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_me5000_3232_0.05_15_heart.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
 
@@ -124,18 +132,18 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	im1 = axes[0,3].contourf(x/2, y/2, z, 20, vmin=40, vmax=85)
+	im1 = axes[0,3].contourf(x/2, y/2, z, 20, vmin=low_acc, vmax=high_acc)
 	axes[0,3].set_aspect('equal')
 	axes[0,3].set_xlabel(r'$\kappa$ for First Layer')
 	axes[0,3].set_ylabel(r'$\kappa$ for Second Layer')
-	axes[0,3].set_title("[64,64]")
+	axes[0,3].set_title("[32,32]")
 
 	for i in range(num_gammas):
 		for j in range(num_gammas):
 			z[j,i] = e_n[i*num_gammas + j]
 			# z[j,i] = g_a[i*num_gammas + j]
 
-	im2 = axes[1,3].contourf(x/2, y/2, z, 20, vmin=0, vmax=5000, cmap='plasma')
+	im2 = axes[1,3].contourf(x/2, y/2, z, 20, vmin=low_epochs, vmax=high_epochs, cmap='plasma')
 	axes[1,3].set_aspect('equal')
 	axes[1,3].set_xlabel(r'$\kappa$ for First Layer')
 	axes[1,3].set_ylabel(r'$\kappa$ for Second Layer')

@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 12/02/19'''
+
 import matplotlib.pyplot as plt
 import numpy as np 
 import pickle
@@ -10,8 +13,8 @@ if __name__ == '__main__':
 
 	fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(16,8))
 
-	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr001.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias1.pkl"
+	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr001.pkl"
+	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias1.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10neg.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -32,7 +35,7 @@ if __name__ == '__main__':
 	axes[0,0].set_aspect('equal')
 	axes[0,0].set_xlabel(r'First layer $\kappa$')
 	axes[0,0].set_ylabel(r'Second layer $\kappa$')
-	axes[0,0].set_title(r'$x_{0} \in [-1, 1]$')
+	axes[0,0].set_title('Learning Rate = 0.001')
 
 	z = np.zeros((num_gammas, num_gammas))
 
@@ -41,14 +44,14 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = e_n[i*num_gammas + j]
 
-	axes[1,0].contourf(x/2, y/2, z, 20, vmin=0, vmax=4000, cmap='plasma')
+	axes[1,0].contourf(x/2, y/2, z, 20, vmin=0, vmax=5000, cmap='plasma')
 	axes[1,0].set_aspect('equal')
 	axes[1,0].set_xlabel(r'First layer $\kappa$')
 	axes[1,0].set_ylabel(r'Second layer $\kappa$')
 	# axes[1,0].set_title("[16,64]")
 
-	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr01.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias5b.pkl"
+	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr01.pkl"
+	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias5b.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -69,7 +72,7 @@ if __name__ == '__main__':
 	axes[0,1].set_aspect('equal')
 	axes[0,1].set_xlabel(r'First layer $\kappa$')
 	axes[0,1].set_ylabel(r'Second layer $\kappa$')
-	axes[0,1].set_title(r'$x_{0} \in [-5, 5]$')
+	axes[0,1].set_title('Learning Rate = 0.001')
 
 	z = np.zeros((num_gammas, num_gammas))
 
@@ -78,14 +81,14 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = e_n[i*num_gammas + j]
 
-	im2 = axes[1,1].contourf(x/2, y/2, z, 20, vmin=0, vmax=4000, cmap='plasma')
+	im2 = axes[1,1].contourf(x/2, y/2, z, 20, vmin=0, vmax=5000, cmap='plasma')
 	axes[1,1].set_aspect('equal')
 	axes[1,1].set_xlabel(r'First layer $\kappa$')
 	axes[1,1].set_ylabel(r'Second layer $\kappa$')
 	# axes[1,1].set_title("[64,64]")
 
-	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr1.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10.pkl"
+	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr1.pkl"
+	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10pos.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -106,7 +109,7 @@ if __name__ == '__main__':
 	axes[0,2].set_aspect('equal')
 	axes[0,2].set_xlabel(r'First layer $\kappa$')
 	axes[0,2].set_ylabel(r'Second layer $\kappa$')
-	axes[0,2].set_title(r'$x_{0} \in [-10, 10]$')
+	axes[0,2].set_title('Learning Rate = 0.001')
 
 	z = np.zeros((num_gammas, num_gammas))
 

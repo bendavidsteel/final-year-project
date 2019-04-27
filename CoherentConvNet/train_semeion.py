@@ -4,6 +4,9 @@ Description: Script to train the network and measure its performance on the test
 Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
+
+Altered by: Ben Steel
+Date: 14/03/19
 '''
 from NN.network_semeion import *
 from NN.utils import *
@@ -18,11 +21,13 @@ import warnings
 warnings.simplefilter('error')
 
 if __name__ == '__main__':
-    
-    save_path = 'adamGD_SoftmaxCross_8Gamma_lr01_bias4b_CoherentNet_8_8f5_8p2_128_semeionDataset_NLdata_try0.pkl'
-    gamma = 8
 
-    cost = train(lr = 0.01, layer=128, gamma = gamma, save_path = save_path, continue_training = False, progress_bar=False)
+    gamma = 4
+    bias_var = 0
+    # save_path = 'adamGD_SoftmaxCross_'+str(gamma)+'Gamma_lr01_bias'+str(bias_var)+'b_CoherentNet_8_8f5_8p2_128_semeionDataset_NLdata_try0.pkl'
+    save_path = 'adamGD_SoftmaxCross_4Gamma_lr01_bias4b_CoherentNet_8_8f5_8p2_128_semeionDataset_NLdata_try0.pkl'
+
+    # cost = train(lr = 0.01, layer=128, gamma=gamma, bias_var=bias_var, save_path = save_path, continue_training = False, progress_bar=False)
 
     with open(save_path, 'rb') as f:
         params, cost, cost_val, nl1_p, nl2_p, nl3_p, nl4_p, final_layer = pickle.load(f)

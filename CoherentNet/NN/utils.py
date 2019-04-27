@@ -4,6 +4,9 @@ Description: Utility methods for a Convolutional Neural Network
 Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
+
+Altered by: Ben Steel
+Date: 08/03/19
 '''
 from NN.forward import *
 import numpy as np

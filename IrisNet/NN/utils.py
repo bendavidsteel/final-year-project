@@ -4,6 +4,9 @@ Description: Utility methods for a Convolutional Neural Network
 Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
+
+Altered by: Ben Steel
+Date: 06/02/19
 '''
 from NN.forward import *
 import numpy as np
@@ -147,7 +150,7 @@ def initializeWeight(size):
 
 def initializeBias(size):
     var = 10
-    return np.random.uniform(low = -2*var, high = 0, size = size)
+    return np.random.uniform(low = -var, high = var, size = size)
 
 def nanargmax(arr):
     idx = np.nanargmax(arr)

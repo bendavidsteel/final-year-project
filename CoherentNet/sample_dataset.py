@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 20/03/19'''
+
 import numpy as np
 import matplotlib.pyplot as plt 
 import CNN.utils as utils

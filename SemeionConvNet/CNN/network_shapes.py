@@ -513,7 +513,7 @@ def train(num_classes = 3, lr = 0.01, beta1 = 0.95, beta2 = 0.99, img_dim = 14, 
     layer_q95 = [nl1_q95, nl2_q95, nl3_q95]
 
     if save:
-        to_save_pickle = [params, final_layer]
+        to_save_pickle = [best_params, final_layer]
         to_save_json = [cost, cost_val, layer_q5, layer_q25, layer_q50, layer_q75, layer_q95]
         # to_save = [params, cost, cost_val]
 

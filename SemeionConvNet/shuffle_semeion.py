@@ -1,3 +1,6 @@
+'''Author : Ben Steel
+Date : 08/02/19'''
+
 import numpy as np 
 
 with open('semeion.data', 'r') as f:

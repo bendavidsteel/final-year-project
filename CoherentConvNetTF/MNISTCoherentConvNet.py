@@ -6,6 +6,9 @@ Author: Aymeric Damien
 Project: https://github.com/aymericdamien/TensorFlow-Examples/
 
 Extended with: https://github.com/Hvass-Labs/TensorFlow-Tutorials/blob/master/04_Save_Restore.ipynb
+
+Author: Ben Steel
+Date: 01/04/19
 """
 
 from __future__ import division, print_function, absolute_import
@@ -19,12 +22,12 @@ from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 
 # Training Parameters
-learning_rate = 0.01
+learning_rate = 0.05
 num_steps = 5000
 batch_size = 128
 display_step = 10
-gamma = 2
-bias_var = 1
+gamma = 8
+bias_var = 0
 continue_training = False
 
 # Network Parameters
@@ -67,9 +70,9 @@ def save_path():
             + '_' + str(params['wc2']['n_filts']) + 'f' + str(params['wc2']['f']) \
             + '_p' + str(params['wp3']['pool']) \
             + '_1f' + str(params['wd4']['m']) \
-            + '_g' + str(gamma) + '_lr_01' \
+            + '_g' + str(gamma) + '_lr_05' \
             + '_bias' + str(bias_var) + 'b' \
-            + '_try' + str(0) + '.pkl'
+            + '_try' + str(5) + '.pkl'
 
 
 # Create some wrappers for simplicity

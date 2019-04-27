@@ -4,6 +4,9 @@ Description: forward operations for a convolutional neural network
 Author: Alejandro Escontrela
 Version: 1.0
 Date: June 12th, 2018
+
+Alterations added by : Ben Steel
+Date: 15/02/19
 '''
 import numpy as np
 

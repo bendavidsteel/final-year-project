@@ -6,6 +6,9 @@ Author: Aymeric Damien
 Project: https://github.com/aymericdamien/TensorFlow-Examples/
 
 Extended with: https://github.com/Hvass-Labs/TensorFlow-Tutorials/blob/master/04_Save_Restore.ipynb
+
+Alterations by : Ben Steel
+Date : 15/03/19
 """
 
 from __future__ import division, print_function, absolute_import

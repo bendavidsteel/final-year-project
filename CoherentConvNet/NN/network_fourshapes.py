@@ -8,7 +8,7 @@ Date: June 12th, 2018
 
 '''
 Adapted by Ben Steel
-Date: 05/02/19
+Date: 08/03/19
 '''
 
 from NN.forward import *

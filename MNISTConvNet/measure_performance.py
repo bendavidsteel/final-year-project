@@ -1,3 +1,6 @@
+'''Author : Ben Steel
+Date : 16/03/19'''
+
 from CNN.utils import *
 
 from tqdm import tqdm

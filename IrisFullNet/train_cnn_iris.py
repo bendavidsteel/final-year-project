@@ -4,6 +4,9 @@ Description: Script to train the network and measure its performance on the test
 Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
+
+Altered by: Ben Steel
+Date: 10/02/19
 '''
 from NN.network_iris import *
 from NN.utils import *

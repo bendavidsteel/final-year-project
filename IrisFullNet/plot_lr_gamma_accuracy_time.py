@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 14/02/19'''
+
 import matplotlib.pyplot as plt
 import numpy as np 
 import pickle
@@ -5,13 +8,13 @@ import pickle
 if __name__ == '__main__':
 
 	# num_gammas = 20
-	num_gammas = 10
+	num_gammas = 15
 	iters = 5
 
 	fig, axes = plt.subplots(nrows=2, ncols=3, figsize=(16,8))
 
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr001.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias1.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias0.1b_me5000_1616_0.05_15_heart.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10neg.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -32,7 +35,7 @@ if __name__ == '__main__':
 	axes[0,0].set_aspect('equal')
 	axes[0,0].set_xlabel(r'First layer $\kappa$')
 	axes[0,0].set_ylabel(r'Second layer $\kappa$')
-	axes[0,0].set_title(r'$x_{0} \in [-1, 1]$')
+	axes[0,0].set_title(r'$x_{0} \in [-0.1, 0.1]$')
 
 	z = np.zeros((num_gammas, num_gammas))
 
@@ -48,7 +51,7 @@ if __name__ == '__main__':
 	# axes[1,0].set_title("[16,64]")
 
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr01.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias5b.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias1b_me5000_1616_0.05_15_heart.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -65,11 +68,11 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	axes[0,1].contourf(x/2, y/2, z, 20, vmin=45, vmax=85)
+	im1 = axes[0,1].contourf(x/2, y/2, z, 20, vmin=45, vmax=85)
 	axes[0,1].set_aspect('equal')
 	axes[0,1].set_xlabel(r'First layer $\kappa$')
 	axes[0,1].set_ylabel(r'Second layer $\kappa$')
-	axes[0,1].set_title(r'$x_{0} \in [-5, 5]$')
+	axes[0,1].set_title(r'$x_{0} \in [-1, 1]$')
 
 	z = np.zeros((num_gammas, num_gammas))
 
@@ -85,7 +88,7 @@ if __name__ == '__main__':
 	# axes[1,1].set_title("[64,64]")
 
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_lr1.pkl"
-	eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10.pkl"
+	eval_save_path = "layer_gamma_accuracy_full_bias10b_me5000_1616_0.05_15_heart.pkl"
 	# eval_save_path = "layer_gamma_accuracy_3232_0.05_15_heart_ne5000_bias10pos.pkl"
 
 	to_save = pickle.load(open(eval_save_path, 'rb')) 
@@ -102,7 +105,7 @@ if __name__ == '__main__':
 			# z[j,i] = e_n[i*num_gammas + j]
 			z[j,i] = g_a[i*num_gammas + j]
 
-	im1 = axes[0,2].contourf(x/2, y/2, z, 20, vmin=45, vmax=85)
+	axes[0,2].contourf(x/2, y/2, z, 20, vmin=45, vmax=85)
 	axes[0,2].set_aspect('equal')
 	axes[0,2].set_xlabel(r'First layer $\kappa$')
 	axes[0,2].set_ylabel(r'Second layer $\kappa$')

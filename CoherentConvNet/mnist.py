@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 16/03/19'''
+
 import numpy as np
 from urllib import request
 import gzip
@@ -13,25 +16,21 @@ filename = [
 def download_mnist():
     base_url = "http://yann.lecun.com/exdb/mnist/"
     for name in filename:
-        print("Downloading "+name[1]+"...")
-        request.urlretrieve(base_url+name[1], name[1])
-    print("Download complete.")
+        print("Downloading " + name[1])
+        request.urlretrieve(base_url + name[1], name[1])
 
 def save_mnist():
     mnist = {}
     for name in filename[:2]:
         with gzip.open(name[1], 'rb') as f:
             mnist[name[0]] = np.frombuffer(f.read(), np.uint8, offset=16).reshape(-1,28*28)
+
     for name in filename[-2:]:
         with gzip.open(name[1], 'rb') as f:
             mnist[name[0]] = np.frombuffer(f.read(), np.uint8, offset=8)
+
     with open("mnist.pkl", 'wb') as f:
         pickle.dump(mnist,f)
-    print("Save complete.")
-
-def init():
-    download_mnist()
-    save_mnist()
 
 def load():
     with open("mnist.pkl",'rb') as f:
@@ -39,4 +38,5 @@ def load():
     return mnist["training_images"], mnist["training_labels"], mnist["test_images"], mnist["test_labels"]
 
 if __name__ == '__main__':
-    init()
+    download_mnist()
+    save_mnist()

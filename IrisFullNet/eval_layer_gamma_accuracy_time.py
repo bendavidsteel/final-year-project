@@ -1,4 +1,7 @@
-from NN.network_iris import *
+'''Author: Ben Steel
+Date: 08/02/19'''
+
+from NN.network_heart import *
 from NN.utils import *
 
 import matplotlib.pyplot as plt
@@ -7,10 +10,11 @@ import pickle
 
 if __name__ == '__main__':
 
-    first_layer = 32
-    second_layer = 32
+    first_layer = 16
+    second_layer = 16
+    bias_var = 10
 
-    eval_save_path = 'layer_gamma_accuracy_full_bias10b_' + str(first_layer) + str(second_layer) + '_0.05_15_iris.pkl'
+    eval_save_path = 'layer_gamma_accuracy_full_bias' + str(bias_var) + 'b_me5000_' + str(first_layer) + str(second_layer) + '_0.05_15_heart.pkl'
 
     num_gammas = 15
 
@@ -40,18 +44,18 @@ if __name__ == '__main__':
                 # save_path = 'layer_gamma_accuracy/_'+str(i)+'_'+str(j)+'_'+str(k)+'.pkl'
                 save_path = 'layer_gamma_accuracy/_'+str(i)+'_'+str(j)+'.pkl'
                 # cost = train(gamma = [g_vals[i], g_vals[j], g_vals[k]], layers = [32,32], save_path = save_path)
-                cost = train(gamma = [g_vals[i], g_vals[j]], layers = [first_layer, second_layer], save_path = save_path, progress_bar=False)
+                cost = train(gamma = [g_vals[i], g_vals[j]], layers = [first_layer, second_layer], save_path = save_path, progress_bar=False, max_epochs=5000, bias_var=bias_var)
 
                 params, cost, cost_val, num_epochs = pickle.load(open(save_path, 'rb'))
 
                 # Get test data
-                X, y_dash = iris_testing_set()
-                # X, y_dash = heart_testing_set()
+                # X, y_dash = iris_testing_set()
+                X, y_dash = heart_testing_set()
                 # Normalize the data
                 test_data = norm_stack_shuffle(X,y_dash)
 
-                num_classes = 3
-                # num_classes = 2
+                # num_classes = 3
+                num_classes = 2
                 
                 X = test_data[:,0:-1]
                 y = test_data[:,-1]

@@ -4,6 +4,9 @@ Description: Utility methods for a Convolutional Neural Network
 Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
+
+Alterations added by : Ben Steel
+Date: 15/02/19
 '''
 from CNN.forward import *
 import numpy as np
@@ -151,7 +154,7 @@ def predict(image, label, params, gamma):
     
     out = w4.dot(a) + b4 # second dense layer
 
-    out /= np.sum(out)
+    out = softmax(out)
     
     # not using softmax as exponential cannot be implemented in optics
     

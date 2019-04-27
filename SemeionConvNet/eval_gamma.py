@@ -1,4 +1,5 @@
-''' Author: Ben Steel '''
+''' Author: Ben Steel
+Date : 27/01/19 '''
 
 
 from CNN.network_simple_dataset import *

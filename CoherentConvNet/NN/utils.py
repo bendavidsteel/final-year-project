@@ -4,6 +4,9 @@ Description: Utility methods for a Convolutional Neural Network
 Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
+
+Altered by: Ben Steel
+Date: 15/03/19
 '''
 from NN.forward import *
 import numpy as np
@@ -249,8 +252,8 @@ def initializeWeight(size):
     var = np.sqrt(6)/np.sqrt(size[0] + size[1])
     return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 
-def initializeBias(size):
-	var = 4
+def initializeBias(size, bias_var):
+	var = bias_var
 	# return np.random.uniform(low = 0, high = var, size = size)
 	return np.random.uniform(low = -var, high = var, size = size) + 1j*np.random.uniform(low = -var, high = var, size = size)
 

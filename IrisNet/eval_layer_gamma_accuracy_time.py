@@ -1,3 +1,6 @@
+'''Author: Ben Steel
+Date: 09/02/19'''
+
 from NN.network_iris import *
 from NN.utils import *
 
@@ -7,7 +10,10 @@ import pickle
 
 if __name__ == '__main__':
 
-    eval_save_path = "layer_gamma_accuracy_6416_0.05_15_heart_ne5000_bias10b.pkl"
+    layer1 = 16
+    layer2 = 16
+
+    eval_save_path = 'layer_gamma_accuracy_' + str(layer1) + str(layer2) + '_0.05_15_heart_ne5000_bias10b.pkl'
 
     num_gammas = 10
 
@@ -21,11 +27,11 @@ if __name__ == '__main__':
     g_a = np.zeros((num_gammas**2,))
     e_n = np.zeros((num_gammas**2,))
 
-    to_save = pickle.load(open(eval_save_path, 'rb')) 
+    # to_save = pickle.load(open(eval_save_path, 'rb')) 
 
-    [x_g, y_g, g_a, e_n] = to_save
+    # [x_g, y_g, g_a, e_n] = to_save
 
-    for i in range(5, num_gammas):
+    for i in range(num_gammas):
         for j in range(num_gammas):
             # for k in range(num_gammas):
 
@@ -37,7 +43,7 @@ if __name__ == '__main__':
                 # save_path = 'layer_gamma_accuracy/_'+str(i)+'_'+str(j)+'_'+str(k)+'.pkl'
                 save_path = 'layer_gamma_accuracy/_'+str(i)+'_'+str(j)+'.pkl'
                 # cost = train(gamma = [g_vals[i], g_vals[j], g_vals[k]], layers = [32,32], save_path = save_path)
-                cost = train(gamma = [g_vals[i], g_vals[j]], layers = [64, 16], save_path = save_path, progress_bar=False, lr=0.01, max_epochs=5000)
+                cost = train(gamma = [g_vals[i], g_vals[j]], layers = [layer1, layer2], save_path = save_path, progress_bar=False, lr=0.01, max_epochs=5000)
 
                 params, cost, cost_val, num_epochs = pickle.load(open(save_path, 'rb'))
 

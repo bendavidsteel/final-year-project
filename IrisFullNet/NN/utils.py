@@ -4,6 +4,9 @@ Description: Utility methods for a Convolutional Neural Network
 Author: Alejandro Escontrela
 Version: V.1.
 Date: June 12th, 2018
+
+Altered by: Ben Steel
+Date: 07/02/19
 '''
 from NN.forward import *
 import numpy as np
@@ -140,9 +143,9 @@ def initializeFilter(size, scale = 1.0):
     stddev = scale/np.sqrt(np.prod(size))
     return np.abs(np.random.normal(loc = 0, scale = stddev, size = size))
 
-def initializeWeight(size):
+def initializeWeight(size, bias_var):
     # scale by inverse square root of size of previous layer
-    var = np.sqrt(6)/np.sqrt(size[0] + size[1])
+    var = bias_var
     return np.abs(np.random.uniform(low = -var, high = var, size = size))
 
 def initializeBias(size):
